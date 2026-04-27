@@ -306,20 +306,30 @@ export default function OfflinePage() {
                       user ? (
                         <button
                           onClick={async () => {
-                            console.log('▶ PLAY', pod.id, pod.url_audio)
-                            if (downloaded[pod.id]) {
-                              const blobUrl = await getAudioURL(pod.id)
-                              if (blobUrl) {
-                                await player.playOffline(pod.id, blobUrl, pod.titulo, undefined, pod.imagen_url)
-                                return
-                              }
-                            }
+                            const podcastsConAudio = podcasts.filter(p => p.url_audio)
+                            const queueItems = await Promise.all(
+                              podcastsConAudio.map(async p => {
+                                const isdl = downloaded[p.id]
+                                const url = isdl
+                                  ? (await getAudioURL(p.id) || getAudioUrl(p.url_audio))
+                                  : getAudioUrl(p.url_audio)
+                                return {
+                                  id: p.id, url,
+                                  titulo: p.titulo,
+                                  artista: `Episodio ${p.numero_episodio}`,
+                                  imageUrl: p.imagen_url,
+                                }
+                              })
+                            )
+                            const startIndex = queueItems.findIndex(q => q.id === pod.id)
+                            player.setQueue(queueItems, startIndex >= 0 ? startIndex : 0)
+                            const isDownloadedPod = downloaded[pod.id]
+                            const audioUrl = isDownloadedPod
+                              ? (await getAudioURL(pod.id) || getAudioUrl(pod.url_audio))
+                              : getAudioUrl(pod.url_audio)
                             await player.playOffline(
-                              pod.id,
-                              getAudioUrl(pod.url_audio),
-                              pod.titulo,
-                              `Episodio ${pod.numero_episodio}`,
-                              pod.imagen_url
+                              pod.id, audioUrl, pod.titulo,
+                              `Episodio ${pod.numero_episodio}`, pod.imagen_url
                             )
                           }}
                           style={{
@@ -524,20 +534,31 @@ export default function OfflinePage() {
                     user ? (
                       <button
                         onClick={async () => {
-                          if (downloaded[track.id]) {
-                            const blobUrl = await getAudioURL(track.id);
-                            if (blobUrl) {
-                              await player.playOffline(track.id, blobUrl, track.titulo, track.artista, selectedPlaylist.imagen_url);
-                              return;
-                            }
-                          }
+                          const tracksConAudio = tracks.filter(t => t.audio_url)
+                          const queueItems = await Promise.all(
+                            tracksConAudio.map(async t => {
+                              const isdl = downloaded[t.id]
+                              const url = isdl
+                                ? (await getAudioURL(t.id) || getAudioUrl(t.audio_url))
+                                : getAudioUrl(t.audio_url)
+                              return {
+                                id: t.id, url,
+                                titulo: t.titulo,
+                                artista: t.artista,
+                                imageUrl: selectedPlaylist?.imagen_url,
+                              }
+                            })
+                          )
+                          const startIndex = queueItems.findIndex(q => q.id === track.id)
+                          player.setQueue(queueItems, startIndex >= 0 ? startIndex : 0)
+                          const isDownloadedTrack = downloaded[track.id]
+                          const audioUrl = isDownloadedTrack
+                            ? (await getAudioURL(track.id) || getAudioUrl(track.audio_url))
+                            : getAudioUrl(track.audio_url)
                           await player.playOffline(
-                            track.id,
-                            getAudioUrl(track.audio_url),
-                            track.titulo,
-                            track.artista,
-                            selectedPlaylist.imagen_url
-                          );
+                            track.id, audioUrl, track.titulo,
+                            track.artista, selectedPlaylist?.imagen_url
+                          )
                         }}
                         style={{
                           background: "none", border: "none",
@@ -724,6 +745,18 @@ export default function OfflinePage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={async () => {
+                        const queueItems = await Promise.all(
+                          downloads.map(async d => ({
+                            id: d.id,
+                            url: (await getAudioURL(d.id)) || '',
+                            titulo: d.titulo,
+                            artista: d.artista,
+                            imageUrl: d.imagen_url,
+                          }))
+                        )
+                        const filtered = queueItems.filter(q => q.url !== '')
+                        const startIndex = filtered.findIndex(q => q.id === item.id)
+                        player.setQueue(filtered, startIndex >= 0 ? startIndex : 0)
                         if (playerState.mode === 'radio' && playerState.isPlaying) {
                           player.pauseRadio()
                         }

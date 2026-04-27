@@ -35,6 +35,15 @@ class AudioPlayerSingleton {
     isLive: true,
   };
 
+  private queue: Array<{
+    id: string
+    url: string
+    titulo: string
+    artista?: string
+    imageUrl?: string
+  }> = []
+  private queueIndex: number = -1
+
   private notify() {
     this.listeners.forEach((l) => l({ ...this.state }));
     this.updateMediaSession(this.state);
@@ -73,6 +82,9 @@ class AudioPlayerSingleton {
         this.listeners.forEach((l) => l({ ...this.state }));
         if ("mediaSession" in navigator) {
           navigator.mediaSession.playbackState = "none";
+        }
+        if (this.hasNext()) {
+          setTimeout(() => this.playNext(), 500);
         }
       });
 
@@ -173,6 +185,8 @@ class AudioPlayerSingleton {
         currentImage: imageUrl || "/icons/icon-192.png",
         currentUrl: audioUrl,
       };
+      const idxInQueue = this.queue.findIndex(q => q.id === id)
+      if (idxInQueue !== -1) this.queueIndex = idxInQueue
       this.notify();
     } catch (e) {
       console.error("playOffline error:", e);
@@ -197,6 +211,46 @@ class AudioPlayerSingleton {
       currentUrl: null,
     };
     this.notify();
+  }
+
+  setQueue(
+    items: Array<{
+      id: string
+      url: string
+      titulo: string
+      artista?: string
+      imageUrl?: string
+    }>,
+    startIndex: number = 0
+  ) {
+    this.queue = items
+    this.queueIndex = startIndex
+  }
+
+  hasNext(): boolean {
+    return this.queue.length > 0 && this.queueIndex < this.queue.length - 1
+  }
+
+  hasPrev(): boolean {
+    return this.queue.length > 0 && this.queueIndex > 0
+  }
+
+  async playNext() {
+    if (!this.hasNext()) return
+    this.queueIndex++
+    const item = this.queue[this.queueIndex]
+    await this.playOffline(item.id, item.url, item.titulo, item.artista, item.imageUrl)
+  }
+
+  async playPrev() {
+    if (!this.hasPrev()) return
+    this.queueIndex--
+    const item = this.queue[this.queueIndex]
+    await this.playOffline(item.id, item.url, item.titulo, item.artista, item.imageUrl)
+  }
+
+  getQueueInfo(): { index: number; total: number } {
+    return { index: this.queueIndex, total: this.queue.length }
   }
 
   setVolume(volume: number) {
@@ -247,8 +301,19 @@ class AudioPlayerSingleton {
     } catch {}
 
     try {
-      navigator.mediaSession.setActionHandler("previoustrack", null);
-      navigator.mediaSession.setActionHandler("nexttrack", null);
+      if (!state.isLive && this.queue.length > 1) {
+        navigator.mediaSession.setActionHandler(
+          'previoustrack',
+          this.hasPrev() ? () => this.playPrev() : null
+        )
+        navigator.mediaSession.setActionHandler(
+          'nexttrack',
+          this.hasNext() ? () => this.playNext() : null
+        )
+      } else {
+        navigator.mediaSession.setActionHandler('previoustrack', null)
+        navigator.mediaSession.setActionHandler('nexttrack', null)
+      }
     } catch {}
 
     if (!state.isLive) {
