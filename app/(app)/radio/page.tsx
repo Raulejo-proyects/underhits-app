@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { VinylDisc } from "@/components/VinylPlayer/VinylDisc";
 import { getAudioPlayer } from "@/lib/audioPlayer";
@@ -12,6 +12,7 @@ export default function RadioPage() {
   const player = getAudioPlayer();
   const [state, setState] = useState(player.getState());
   const [user, setUser] = useState<User | null>(null);
+  const [connecting, setConnecting] = useState(false);
 
   useEffect(() => {
     const unsub = player.subscribe(setState);
@@ -19,13 +20,28 @@ export default function RadioPage() {
     return unsub;
   }, []);
 
-  const handleToggle = () => {
-    if (state.mode === "offline" || !state.isPlaying) {
-      player.playRadio();
+  useEffect(() => {
+    const currentState = player.getState();
+    if (!currentState.isPlaying) {
+      setConnecting(true);
+      const timer = setTimeout(async () => {
+        await player.playRadio();
+        setConnecting(false);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleToggle = useCallback(async () => {
+    if (!state?.isPlaying) {
+      setConnecting(true);
+      await player.playRadio();
+      setTimeout(() => setConnecting(false), 2000);
     } else {
       player.pauseRadio();
+      setConnecting(false);
     }
-  };
+  }, [player, state]);
 
   const handleVolume = (e: React.ChangeEvent<HTMLInputElement>) => {
     player.setVolume(parseFloat(e.target.value));
@@ -106,22 +122,84 @@ export default function RadioPage() {
         </div>
 
         {/* Play button */}
-        <button
-          onClick={handleToggle}
-          className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95"
-          style={{ background: "#E8522A" }}
-        >
-          {isRadioPlaying ? (
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
-              <rect x="6" y="4" width="4" height="16" rx="1" />
-              <rect x="14" y="4" width="4" height="16" rx="1" />
-            </svg>
-          ) : (
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="white" style={{ marginLeft: 4 }}>
-              <path d="M5 3l14 9-14 9V3z" />
-            </svg>
+        <div style={{ position: 'relative', display: 'inline-flex',
+          alignItems: 'center', justifyContent: 'center' }}>
+
+          {isRadioPlaying && !connecting && (
+            <div style={{
+              position: 'absolute',
+              width: 80, height: 80,
+              borderRadius: '50%',
+              border: '2px solid rgba(232, 82, 42, 0.3)',
+              animation: 'pulse-ring 2s ease-in-out infinite',
+              pointerEvents: 'none',
+            }} />
           )}
-        </button>
+
+          {isRadioPlaying && !connecting && (
+            <div style={{
+              position: 'absolute',
+              width: 96, height: 96,
+              borderRadius: '50%',
+              border: '1.5px solid rgba(232, 82, 42, 0.15)',
+              animation: 'pulse-ring 2s ease-in-out infinite 0.4s',
+              pointerEvents: 'none',
+            }} />
+          )}
+
+          {connecting && (
+            <div style={{
+              position: 'absolute',
+              width: 76, height: 76,
+              borderRadius: '50%',
+              border: '2.5px solid transparent',
+              borderTopColor: '#E8522A',
+              borderRightColor: 'rgba(232,82,42,0.3)',
+              animation: 'spin-ring 0.8s linear infinite',
+              pointerEvents: 'none',
+            }} />
+          )}
+
+          <button
+            onClick={handleToggle}
+            disabled={connecting}
+            style={{
+              width: 60, height: 60,
+              borderRadius: '50%',
+              background: connecting ? 'rgba(232,82,42,0.7)' : '#E8522A',
+              border: 'none',
+              cursor: connecting ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: isRadioPlaying
+                ? '0 4px 20px rgba(232,82,42,0.5)'
+                : '0 4px 16px rgba(232,82,42,0.3)',
+              transition: 'all 0.3s ease',
+              position: 'relative',
+              zIndex: 1,
+            }}
+          >
+            {connecting ? (
+              <svg width={22} height={22} viewBox="0 0 24 24"
+                   fill="none" stroke="#fff" strokeWidth={2}
+                   strokeLinecap="round">
+                <circle cx="12" cy="12" r="2"/>
+                <path d="M16.24 7.76a6 6 0 0 1 0 8.49"/>
+                <path d="M7.76 7.76a6 6 0 0 0 0 8.49"/>
+              </svg>
+            ) : isRadioPlaying ? (
+              <svg width={22} height={22} viewBox="0 0 24 24" fill="#fff">
+                <rect x="6" y="4" width="4" height="16" rx="1"/>
+                <rect x="14" y="4" width="4" height="16" rx="1"/>
+              </svg>
+            ) : (
+              <svg width={22} height={22} viewBox="0 0 24 24" fill="#fff">
+                <polygon points="5,3 19,12 5,21"/>
+              </svg>
+            )}
+          </button>
+        </div>
 
         {/* Social links */}
         <div className="text-center">
