@@ -24,9 +24,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         setUser(session?.user ?? null);
         setLoading(false);
+
+        if (_event === 'SIGNED_IN' && session?.user) {
+          const u = session.user;
+          const pendingNombre = localStorage.getItem('pending-nombre');
+          await supabase.from('pwa_usuarios').upsert(
+            {
+              id: u.id,
+              email: u.email ?? '',
+              nombre:
+                pendingNombre ||
+                u.user_metadata?.nombre ||
+                u.email?.split('@')[0] ||
+                'Oyente',
+            },
+            { onConflict: 'id', ignoreDuplicates: true }
+          );
+          localStorage.removeItem('pending-nombre');
+        }
       }
     );
 
