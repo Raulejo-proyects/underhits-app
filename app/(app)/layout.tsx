@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { InstallBanner } from "@/components/InstallBanner";
 import { MiniPlayer } from "@/components/MiniPlayer";
 import { useAuth } from "@/lib/authContext";
@@ -45,7 +45,8 @@ const tabs = [
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
+  const [showMenu, setShowMenu] = useState(false)
 
   useEffect(() => {
     if (loading) return;
@@ -56,7 +57,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col h-full">
-      {!user && !loading && pathname === '/radio' && (
+      {!loading && (
         <div style={{
           display: 'flex',
           justifyContent: 'flex-end',
@@ -64,21 +65,109 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           background: '#111',
           borderBottom: '1px solid #1a1a1a',
         }}>
-          <button
-            onClick={() => router.push('/registro')}
-            style={{
-              background: 'rgba(232,82,42,0.15)',
-              border: '1px solid rgba(232,82,42,0.3)',
-              color: '#E8522A',
-              padding: '4px 12px',
-              borderRadius: 100,
-              fontSize: 11,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            Registrarse
-          </button>
+          {!user ? (
+            <button
+              onClick={() => router.push('/registro')}
+              style={{
+                background: 'rgba(232,82,42,0.15)',
+                border: '1px solid rgba(232,82,42,0.3)',
+                color: '#E8522A',
+                padding: '4px 12px',
+                borderRadius: 100,
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              Registrarse
+            </button>
+          ) : (
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                style={{
+                  width: 32, height: 32, borderRadius: '50%',
+                  background: '#E8522A',
+                  border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', flexShrink: 0,
+                }}
+              >
+                <svg width={16} height={16} viewBox="0 0 24 24"
+                     fill="none" stroke="#fff" strokeWidth={2}
+                     strokeLinecap="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              </button>
+
+              {showMenu && (
+                <>
+                  <div
+                    onClick={() => setShowMenu(false)}
+                    style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+                  />
+                  <div style={{
+                    position: 'absolute', top: 40, right: 0,
+                    background: '#1a1a1a',
+                    border: '1px solid #2a2a2a',
+                    borderRadius: 12, padding: '8px 0',
+                    minWidth: 180, zIndex: 100,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                  }}>
+                    <div style={{
+                      padding: '8px 16px 12px',
+                      borderBottom: '1px solid #2a2a2a',
+                    }}>
+                      <p style={{
+                        color: '#f5f5f5', fontSize: 13,
+                        fontWeight: 700, margin: 0,
+                        whiteSpace: 'nowrap', overflow: 'hidden',
+                        textOverflow: 'ellipsis', maxWidth: 148,
+                      }}>
+                        {user.user_metadata?.nombre ||
+                         user.email?.split('@')[0] ||
+                         'Usuario'}
+                      </p>
+                      <p style={{
+                        color: '#555', fontSize: 11,
+                        margin: '2px 0 0',
+                        whiteSpace: 'nowrap', overflow: 'hidden',
+                        textOverflow: 'ellipsis', maxWidth: 148,
+                      }}>
+                        {user.email}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={async () => {
+                        setShowMenu(false)
+                        await signOut()
+                        router.replace('/registro')
+                      }}
+                      style={{
+                        width: '100%', background: 'none',
+                        border: 'none', cursor: 'pointer',
+                        padding: '10px 16px',
+                        display: 'flex', alignItems: 'center',
+                        gap: 10, color: '#ef4444',
+                        fontSize: 13, fontWeight: 600,
+                      }}
+                    >
+                      <svg width={15} height={15} viewBox="0 0 24 24"
+                           fill="none" stroke="currentColor"
+                           strokeWidth={2} strokeLinecap="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                      </svg>
+                      Cerrar sesión
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
       <main className="flex-1 overflow-y-auto overflow-x-hidden" style={{ paddingBottom: "72px" }}>

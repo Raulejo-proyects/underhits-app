@@ -66,6 +66,20 @@ export default function LoginPage() {
           </p>
         )}
 
+        <div style={{ textAlign: 'right' }}>
+          <button
+            type="button"
+            onClick={() => router.push('/recuperar')}
+            style={{
+              background: 'none', border: 'none',
+              color: '#E8522A', fontSize: 12,
+              cursor: 'pointer', padding: 0,
+            }}
+          >
+            ¿Olvidaste tu contraseña?
+          </button>
+        </div>
+
         <button
           type="submit"
           disabled={loading}
