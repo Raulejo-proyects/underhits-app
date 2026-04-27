@@ -1,26 +1,138 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --primary: #E8522A;
+  --bg: #0a0a0a;
+  --bg-card: #1a1a1a;
+  --bg-card2: #222222;
+  --text: #ffffff;
+  --text-muted: #888888;
+  --border: #333333;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overscroll-behavior: none;
+  height: 100%;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 2px;
+}
+
+button,
+nav,
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@keyframes spin-vinyl {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slide-up {
+  from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+  to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.vinyl-spin {
+  animation: spin-vinyl 3s linear infinite;
+}
+
+.pulse-live {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+@keyframes progress-bar {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+.splash-progress {
+  animation: progress-bar 2s ease-out forwards;
+}
+
+/* Vinyl size — responsive */
+.vinyl-size {
+  width: 220px;
+  height: 220px;
+}
+
+/* Responsive breakpoints */
+@media (min-width: 768px) {
+  .app-container {
+    max-width: 480px;
+  }
+
+  .radio-content {
+    gap: 32px;
+    padding: 24px;
+  }
+
+  .vinyl-size {
+    width: 280px !important;
+    height: 280px !important;
+  }
+
+  .chat-input-area {
+    padding: 14px 16px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* PWA standalone mode */
+@media (display-mode: standalone) {
+  .app-container {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Desktop — centrar y dar contexto */
+@media (min-width: 769px) {
+  .app-shell {
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a0f0a 50%, #0a0a0a 100%);
+    min-height: 100vh;
+  }
+
+  .app-container {
+    box-shadow:
+      0 0 0 1px rgba(232, 82, 42, 0.1),
+      0 0 60px rgba(232, 82, 42, 0.08),
+      0 20px 80px rgba(0, 0, 0, 0.8);
+  }
 }

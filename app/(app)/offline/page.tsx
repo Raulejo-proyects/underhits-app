@@ -520,38 +520,53 @@ export default function OfflinePage() {
                 </div>
                 <div className="flex items-center gap-1">
                   {/* Play track */}
-                  {track.audio_url && (
-                    <button
-                      onClick={async () => {
-                        console.log('▶ PLAY track clicked', { trackId: track.id, url: track.audio_url, downloaded: downloaded[track.id], canDownload, user: user?.id });
-                        if (downloaded[track.id]) {
-                          const blobUrl = await getAudioURL(track.id);
-                          if (blobUrl) {
-                            await player.playOffline(track.id, blobUrl, track.titulo, track.artista, selectedPlaylist.imagen_url);
-                            return;
+                  {track.audio_url ? (
+                    user ? (
+                      <button
+                        onClick={async () => {
+                          if (downloaded[track.id]) {
+                            const blobUrl = await getAudioURL(track.id);
+                            if (blobUrl) {
+                              await player.playOffline(track.id, blobUrl, track.titulo, track.artista, selectedPlaylist.imagen_url);
+                              return;
+                            }
                           }
-                        }
-                        await player.playOffline(
-                          track.id,
-                          getAudioUrl(track.audio_url),
-                          track.titulo,
-                          track.artista,
-                          selectedPlaylist.imagen_url
-                        );
-                      }}
-                      style={{
-                        background: "none", border: "none",
-                        color: playerState.currentTrackId === track.id && playerState.isPlaying
-                          ? "#E8522A"
-                          : downloaded[track.id] ? "#E8522A" : "#888",
-                        cursor: "pointer", padding: 4,
-                      }}
-                    >
-                      <svg width={22} height={22} viewBox="0 0 24 24" fill="currentColor">
-                        <polygon points="5,3 19,12 5,21" />
-                      </svg>
-                    </button>
-                  )}
+                          await player.playOffline(
+                            track.id,
+                            getAudioUrl(track.audio_url),
+                            track.titulo,
+                            track.artista,
+                            selectedPlaylist.imagen_url
+                          );
+                        }}
+                        style={{
+                          background: "none", border: "none",
+                          color: playerState.currentTrackId === track.id && playerState.isPlaying
+                            ? "#E8522A"
+                            : downloaded[track.id] ? "#E8522A" : "#888",
+                          cursor: "pointer", padding: 4,
+                        }}
+                        title="Reproducir"
+                      >
+                        <svg width={22} height={22} viewBox="0 0 24 24" fill="currentColor">
+                          <polygon points="5,3 19,12 5,21" />
+                        </svg>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => router.push('/registro')}
+                        style={{
+                          background: 'none', border: 'none',
+                          color: '#444', cursor: 'pointer', padding: 4,
+                        }}
+                        title="Inicia sesión para reproducir"
+                      >
+                        <svg width={22} height={22} viewBox="0 0 24 24" fill="currentColor" opacity={0.3}>
+                          <polygon points="5,3 19,12 5,21" />
+                        </svg>
+                      </button>
+                    )
+                  ) : null}
 
                   {/* Descarga en progreso */}
                   {downloading[track.id] !== undefined && (
