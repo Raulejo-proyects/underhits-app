@@ -152,10 +152,18 @@ export default function RegistroPage() {
           <button
             type="button"
             onClick={handleSaltar}
-            className="flex-1 py-4 rounded-2xl font-semibold text-sm"
+            className="flex-1 py-4 rounded-2xl font-semibold text-sm flex flex-col items-center justify-center gap-0.5"
             style={{ background: '#2a2a2a', color: '#aaa' }}
           >
-            Saltar
+            <span>Saltar</span>
+            <span style={{
+              color: '#E8522A',
+              fontSize: '10px',
+              fontWeight: 700,
+              letterSpacing: '0.05em',
+            }}>
+              ESCUCHAR RADIO
+            </span>
           </button>
           <button
             type="submit"
