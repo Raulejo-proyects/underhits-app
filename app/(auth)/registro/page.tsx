@@ -103,8 +103,18 @@ export default function RegistroPage() {
       <h1 className="text-2xl font-bold text-center mb-1" style={{ color: '#fff' }}>
         Under Hits Radio
       </h1>
-      <p className="text-center text-sm mb-8" style={{ color: '#888' }}>
-        Crea tu cuenta para acceder a todas las funciones
+      <p className="text-center text-sm mb-8">
+        <span style={{ color: '#888' }}>
+          Crea tu cuenta para acceder al{' '}
+        </span>
+        <span style={{
+          color: '#E8522A',
+          fontWeight: 900,
+          fontSize: '15px',
+          letterSpacing: '0.02em',
+        }}>
+          CONTENIDO OFFLINE Y CHAT EN PROGRAMAS EN VIVO
+        </span>
       </p>
       <form onSubmit={handleRegistro} className="space-y-3">
         <input
