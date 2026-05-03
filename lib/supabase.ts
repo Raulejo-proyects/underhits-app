@@ -29,7 +29,7 @@ function getSupabaseClient() {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        storageKey: 'sb-underhits-auth',
+        storageKey: 'sb-underhits-pwa',
       },
       realtime: {
         params: {
