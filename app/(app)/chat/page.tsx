@@ -118,12 +118,8 @@ export default function ChatPage() {
         console.log("Realtime status:", status);
       });
 
-    // Polling de respaldo cada 5 segundos
-    const pollInterval = setInterval(loadMessages, 5000);
-
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(pollInterval);
     };
   }, [loadMessages]);
 

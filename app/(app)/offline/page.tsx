@@ -54,21 +54,31 @@ export default function OfflinePage() {
   const canDownload = !!(user?.id);
 
   useEffect(() => {
-    const unsub = player.subscribe(setPlayerState);
-    supabase.auth.getSession().then(({ data }) => {
-      const u = data.session?.user ?? null;
-      setUser(u);
-      if (u) {
-        getCloudDownloads(u.id).then(setCloudDownloads);
+    const unsub = player.subscribe(setPlayerState)
+
+    // Usar onAuthStateChange en vez de getSession
+    // para evitar conflicto de locks
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        const u = session?.user ?? null
+        setUser(u)
+        if (u) {
+          getCloudDownloads(u.id).then(setCloudDownloads)
+        }
       }
-    });
-    // Load downloaded state from IndexedDB on mount
+    )
+
+    // Cargar estado de IndexedDB
     getAllOfflineMeta().then((items) => {
-      const map: Record<string, boolean> = {};
-      items.forEach((item) => { map[item.id] = true; });
-      setDownloaded(map);
-    });
-    return unsub;
+      const map: Record<string, boolean> = {}
+      items.forEach((item) => { map[item.id] = true })
+      setDownloaded(map)
+    })
+
+    return () => {
+      unsub()
+      subscription.unsubscribe()
+    }
   }, []);
 
   useEffect(() => {
