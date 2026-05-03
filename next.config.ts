@@ -26,31 +26,31 @@ const nextConfig: NextConfig = {
         // Aplicar headers de seguridad a todas las rutas
         source: '/(.*)',
         headers: [
-          // CSP temporalmente deshabilitado para diagnóstico
-          // {
-          //   key: 'Content-Security-Policy',
-          //   value: [
-          //     "default-src 'self'",
-          //     // Scripts: solo propios + Next.js inline
-          //     "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-          //     // Estilos: propios + inline (Tailwind)
-          //     "style-src 'self' 'unsafe-inline'",
-          //     // Imágenes: propias + Supabase Storage
-          //     "img-src 'self' data: blob: https://otpajfcjsehqdkzanbsu.supabase.co",
-          //     // Audio: propio + Supabase Storage + Zeno.fm stream
-          //     "media-src 'self' blob: https://otpajfcjsehqdkzanbsu.supabase.co https://*.zeno.fm",
-          //     // Conexiones: Supabase API + Realtime + Zeno.fm
-          //     "connect-src 'self' https://otpajfcjsehqdkzanbsu.supabase.co wss://otpajfcjsehqdkzanbsu.supabase.co wss://realtime.supabase.co wss://*.supabase.co https://*.zeno.fm wss://*.zeno.fm",
-          //     // Fuentes
-          //     "font-src 'self'",
-          //     // Frames: ninguno (previene clickjacking)
-          //     "frame-src 'none'",
-          //     // Workers: propios + blob (Service Worker)
-          //     "worker-src 'self' blob:",
-          //     // Manifest PWA
-          //     "manifest-src 'self'",
-          //   ].join('; '),
-          // },
+          // Content Security Policy
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              // Scripts: solo propios + Next.js inline
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              // Estilos: propios + inline (Tailwind)
+              "style-src 'self' 'unsafe-inline'",
+              // Imágenes: propias + Supabase Storage
+              "img-src 'self' data: blob: https://otpajfcjsehqdkzanbsu.supabase.co",
+              // Audio: propio + Supabase Storage + Zeno.fm stream
+              "media-src 'self' blob: https://otpajfcjsehqdkzanbsu.supabase.co https://*.zeno.fm",
+              // Conexiones: Supabase API + Realtime + Zeno.fm
+              "connect-src 'self' https://otpajfcjsehqdkzanbsu.supabase.co wss://otpajfcjsehqdkzanbsu.supabase.co wss://realtime.supabase.co wss://*.supabase.co https://*.zeno.fm wss://*.zeno.fm",
+              // Fuentes
+              "font-src 'self'",
+              // Frames: ninguno (previene clickjacking)
+              "frame-src 'none'",
+              // Workers: propios + blob (Service Worker)
+              "worker-src 'self' blob:",
+              // Manifest PWA
+              "manifest-src 'self'",
+            ].join('; '),
+          },
           // Prevenir clickjacking
           {
             key: 'X-Frame-Options',
