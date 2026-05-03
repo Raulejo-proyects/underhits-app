@@ -107,6 +107,13 @@ export default function ChatPage() {
           setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
         }
       )
+      .on('postgres_changes', {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'chat_mensajes',
+      }, () => {
+        loadMessages()
+      })
       .subscribe((status) => {
         console.log("Realtime status:", status);
       });
