@@ -63,28 +63,64 @@ export async function downloadAndSave(
   meta: Omit<OfflineMeta, "downloadedAt" | "size">,
   onProgress?: (pct: number) => void
 ): Promise<void> {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error("Error al descargar el audio");
+  assertBrowser()
 
-  const contentLength = response.headers.get("content-length");
-  const total = contentLength ? parseInt(contentLength) : 0;
-  const reader = response.body!.getReader();
-  const chunks: Uint8Array<ArrayBuffer>[] = [];
-  let received = 0;
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    received += value.length;
-    if (total > 0) onProgress?.(Math.round((received / total) * 100));
+  // Usar arrayBuffer directo — más compatible con Safari
+  const contentLength = response.headers.get("content-length")
+  const total = contentLength ? parseInt(contentLength) : 0
+
+  let arrayBuffer: ArrayBuffer
+
+  if (total > 0 && onProgress) {
+    // Leer con progreso
+    const reader = response.body!.getReader()
+    const chunks: Uint8Array[] = []
+    let received = 0
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      if (value) {
+        chunks.push(new Uint8Array(value.buffer.slice(
+          value.byteOffset,
+          value.byteOffset + value.byteLength
+        )))
+        received += value.byteLength
+        onProgress(Math.round((received / total) * 100))
+      }
+    }
+
+    // Concatenar chunks en un ArrayBuffer limpio
+    const totalLength = chunks.reduce((acc, c) => acc + c.length, 0)
+    const combined = new Uint8Array(totalLength)
+    let offset = 0
+    for (const chunk of chunks) {
+      combined.set(chunk, offset)
+      offset += chunk.length
+    }
+    arrayBuffer = combined.buffer as ArrayBuffer
+  } else {
+    // Sin progreso — usar arrayBuffer directo
+    arrayBuffer = await response.arrayBuffer()
+    onProgress?.(100)
   }
 
-  const blob = new Blob(chunks, { type: "audio/mpeg" });
-  const db = await getDB();
-  await db.put(STORE_AUDIO, blob, id);
-  await db.put(STORE_META, { ...meta, downloadedAt: Date.now(), size: blob.size, audio_url: url }, id);
-  onProgress?.(100);
+  // Crear Blob desde ArrayBuffer — compatible con Safari IndexedDB
+  const blob = new Blob([arrayBuffer], { type: "audio/mpeg" })
+
+  const db = await getDB()
+  await db.put(STORE_AUDIO, blob, id)
+  await db.put(STORE_META, {
+    ...meta,
+    downloadedAt: Date.now(),
+    size: blob.size,
+    audio_url: url,
+  }, id)
+
+  onProgress?.(100)
 }
 
 export async function getAudioBlob(id: string): Promise<Blob | undefined> {

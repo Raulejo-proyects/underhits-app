@@ -162,91 +162,110 @@ export default function OfflinePage() {
   };
 
   const handleDownloadPodcast = async (pod: Podcast) => {
-    const key = pod.id;
-    const audioUrl = getAudioUrl(pod.url_audio);
-    console.log('⬇ DOWNLOAD clicked', { key, audioUrl, canDownload, user: user?.id });
-    setDownloading((prev) => ({ ...prev, [key]: 0 }));
-    try {
-      await downloadAndSave(
-        key,
-        audioUrl,
-        {
-          id: key,
-          type: "podcast",
-          titulo: pod.titulo,
-          duracion: pod.duracion,
-          imagen_url: pod.imagen_url,
-        },
-        (progress) => setDownloading((prev) => ({ ...prev, [key]: progress }))
-      );
-      setDownloaded((prev) => ({ ...prev, [key]: true }));
-      if (user) {
-        await registerDownloadInCloud(user.id, {
-          id: key,
-          type: "podcast",
-          titulo: pod.titulo,
-          duracion: pod.duracion,
-          imagen_url: pod.imagen_url,
-          audio_url: audioUrl,
-        });
-        getCloudDownloads(user.id).then(setCloudDownloads);
-      }
-    } catch (e) {
-      console.error("Download error:", e);
-    } finally {
-      setDownloading((prev) => {
-        const next = { ...prev };
-        delete next[key];
-        return next;
-      });
-    }
-  };
+    if (!canDownload || !pod.url_audio) return
+    const key = pod.id
 
-  const handleDownloadTrack = async (track: PlaylistTrack, playlist: Playlist) => {
-    const key = track.id;
-    const audioUrl = getAudioUrl(track.audio_url);
-    setDownloading((prev) => ({ ...prev, [key]: 0 }));
+    // Obtener URL real — nunca usar blob://
+    const audioUrl = getAudioUrl(pod.url_audio)
+
+    // Validar que es una URL https válida, no blob://
+    if (!audioUrl.startsWith('https://')) {
+      console.error('URL inválida para descarga:', audioUrl)
+      return
+    }
+
+    setDownloading(prev => ({ ...prev, [key]: 0 }))
     try {
       await downloadAndSave(
         key,
         audioUrl,
         {
           id: key,
-          type: "track",
-          titulo: track.titulo,
-          artista: track.artista,
-          duracion: track.duracion,
-          imagen_url: playlist.imagen_url,
-          playlistId: playlist.id,
-          playlistTitulo: playlist.titulo,
+          type: 'podcast',
+          titulo: pod.titulo,
+          duracion: pod.duracion ?? 0,
+          imagen_url: pod.imagen_url ?? '',
+          audio_url: audioUrl,
         },
-        (progress) => setDownloading((prev) => ({ ...prev, [key]: progress }))
-      );
-      setDownloaded((prev) => ({ ...prev, [key]: true }));
+        (progress) => setDownloading(prev => ({ ...prev, [key]: progress }))
+      )
+      setDownloaded(prev => ({ ...prev, [key]: true }))
       if (user) {
         await registerDownloadInCloud(user.id, {
           id: key,
-          type: "track",
-          titulo: track.titulo,
-          artista: track.artista,
-          duracion: track.duracion,
-          imagen_url: playlist.imagen_url,
+          type: 'podcast',
+          titulo: pod.titulo,
+          duracion: pod.duracion ?? 0,
+          imagen_url: pod.imagen_url ?? '',
           audio_url: audioUrl,
-          playlistId: playlist.id,
-          playlistTitulo: playlist.titulo,
-        });
-        getCloudDownloads(user.id).then(setCloudDownloads);
+        })
+        getCloudDownloads(user.id).then(setCloudDownloads)
       }
     } catch (e) {
-      console.error("Download error:", e);
+      console.error('Download error:', e)
     } finally {
-      setDownloading((prev) => {
-        const next = { ...prev };
-        delete next[key];
-        return next;
-      });
+      setDownloading(prev => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
     }
-  };
+  }
+
+  const handleDownloadTrack = async (track: PlaylistTrack) => {
+    if (!canDownload || !track.audio_url) return
+    const key = track.id
+
+    const audioUrl = getAudioUrl(track.audio_url)
+
+    if (!audioUrl.startsWith('https://')) {
+      console.error('URL inválida para descarga:', audioUrl)
+      return
+    }
+
+    setDownloading(prev => ({ ...prev, [key]: 0 }))
+    try {
+      await downloadAndSave(
+        key,
+        audioUrl,
+        {
+          id: key,
+          type: 'track',
+          titulo: track.titulo,
+          artista: track.artista ?? '',
+          duracion: track.duracion ?? 0,
+          imagen_url: selectedPlaylist?.imagen_url ?? '',
+          playlistId: track.playlist_id,
+          playlistTitulo: selectedPlaylist?.titulo,
+          audio_url: audioUrl,
+        },
+        (progress) => setDownloading(prev => ({ ...prev, [key]: progress }))
+      )
+      setDownloaded(prev => ({ ...prev, [key]: true }))
+      if (user && selectedPlaylist) {
+        await registerDownloadInCloud(user.id, {
+          id: key,
+          type: 'track',
+          titulo: track.titulo,
+          artista: track.artista,
+          duracion: track.duracion ?? 0,
+          imagen_url: selectedPlaylist.imagen_url ?? '',
+          audio_url: audioUrl,
+          playlistId: track.playlist_id,
+          playlistTitulo: selectedPlaylist.titulo,
+        })
+        getCloudDownloads(user.id).then(setCloudDownloads)
+      }
+    } catch (e) {
+      console.error('Download error:', e)
+    } finally {
+      setDownloading(prev => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+    }
+  }
 
   const handleDeleteDownload = async (id: string) => {
     await deleteOfflineItem(id);
@@ -708,7 +727,7 @@ export default function OfflinePage() {
                   {/* Botón descargar */}
                   {canDownload && track.audio_url && !downloaded[track.id] && downloading[track.id] === undefined && (
                     <button
-                      onClick={() => handleDownloadTrack(track, selectedPlaylist)}
+                      onClick={() => handleDownloadTrack(track)}
                       style={{ background: "none", border: "none", color: "#666", cursor: "pointer", padding: 4 }}
                     >
                       <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
