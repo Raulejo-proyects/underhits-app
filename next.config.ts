@@ -38,9 +38,9 @@ const nextConfig: NextConfig = {
               // Imágenes: propias + Supabase Storage
               "img-src 'self' data: blob: https://otpajfcjsehqdkzanbsu.supabase.co",
               // Audio: propio + Supabase Storage + Zeno.fm stream
-              "media-src 'self' blob: https://otpajfcjsehqdkzanbsu.supabase.co https://stream.zeno.fm",
+              "media-src 'self' blob: https://otpajfcjsehqdkzanbsu.supabase.co https://*.zeno.fm",
               // Conexiones: Supabase API + Realtime + Zeno.fm
-              "connect-src 'self' https://otpajfcjsehqdkzanbsu.supabase.co wss://realtime.supabase.co https://stream.zeno.fm",
+              "connect-src 'self' https://otpajfcjsehqdkzanbsu.supabase.co wss://realtime.supabase.co wss://*.supabase.co https://*.zeno.fm",
               // Fuentes
               "font-src 'self'",
               // Frames: ninguno (previene clickjacking)
