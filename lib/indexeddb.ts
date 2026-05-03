@@ -18,6 +18,7 @@ export type OfflineMeta = {
   playlistTitulo?: string;
   downloadedAt: number;
   size: number;
+  audio_url?: string;
 };
 
 function assertBrowser() {
@@ -82,7 +83,7 @@ export async function downloadAndSave(
   const blob = new Blob(chunks, { type: "audio/mpeg" });
   const db = await getDB();
   await db.put(STORE_AUDIO, blob, id);
-  await db.put(STORE_META, { ...meta, downloadedAt: Date.now(), size: blob.size }, id);
+  await db.put(STORE_META, { ...meta, downloadedAt: Date.now(), size: blob.size, audio_url: url }, id);
   onProgress?.(100);
 }
 

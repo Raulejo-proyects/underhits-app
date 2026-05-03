@@ -15,6 +15,12 @@ import {
 import type { OfflineMeta } from "@/lib/indexeddb";
 import { getAudioPlayer } from "@/lib/audioPlayer";
 import type { User } from "@supabase/supabase-js";
+import {
+  registerDownloadInCloud,
+  removeDownloadFromCloud,
+  getCloudDownloads,
+  type CloudDownload,
+} from "@/lib/syncDownloads";
 
 type Tab = "podcasts" | "playlists" | "descargas";
 
@@ -40,13 +46,22 @@ export default function OfflinePage() {
   const [user, setUser] = useState<User | null>(null);
   const [downloaded, setDownloaded] = useState<Record<string, boolean>>({});
   const [downloading, setDownloading] = useState<Record<string, number>>({});
+  const [cloudDownloads, setCloudDownloads] = useState<CloudDownload[]>([]);
+  const [, setCloudLoading] = useState(false);
+  const [redownloading, setRedownloading] = useState<Record<string, number>>({});
 
   const player = getAudioPlayer();
   const canDownload = !!(user?.id);
 
   useEffect(() => {
     const unsub = player.subscribe(setPlayerState);
-    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
+    supabase.auth.getSession().then(({ data }) => {
+      const u = data.session?.user ?? null;
+      setUser(u);
+      if (u) {
+        getCloudDownloads(u.id).then(setCloudDownloads);
+      }
+    });
     // Load downloaded state from IndexedDB on mount
     getAllOfflineMeta().then((items) => {
       const map: Record<string, boolean> = {};
@@ -132,6 +147,17 @@ export default function OfflinePage() {
         (progress) => setDownloading((prev) => ({ ...prev, [key]: progress }))
       );
       setDownloaded((prev) => ({ ...prev, [key]: true }));
+      if (user) {
+        await registerDownloadInCloud(user.id, {
+          id: key,
+          type: "podcast",
+          titulo: pod.titulo,
+          duracion: pod.duracion,
+          imagen_url: pod.imagen_url,
+          audio_url: audioUrl,
+        });
+        getCloudDownloads(user.id).then(setCloudDownloads);
+      }
     } catch (e) {
       console.error("Download error:", e);
     } finally {
@@ -164,6 +190,20 @@ export default function OfflinePage() {
         (progress) => setDownloading((prev) => ({ ...prev, [key]: progress }))
       );
       setDownloaded((prev) => ({ ...prev, [key]: true }));
+      if (user) {
+        await registerDownloadInCloud(user.id, {
+          id: key,
+          type: "track",
+          titulo: track.titulo,
+          artista: track.artista,
+          duracion: track.duracion,
+          imagen_url: playlist.imagen_url,
+          audio_url: audioUrl,
+          playlistId: playlist.id,
+          playlistTitulo: playlist.titulo,
+        });
+        getCloudDownloads(user.id).then(setCloudDownloads);
+      }
     } catch (e) {
       console.error("Download error:", e);
     } finally {
@@ -182,7 +222,43 @@ export default function OfflinePage() {
       delete next[id];
       return next;
     });
+    if (user) {
+      await removeDownloadFromCloud(user.id, id);
+      getCloudDownloads(user.id).then(setCloudDownloads);
+    }
     await loadDownloads();
+  };
+
+  const handleRedownload = async (cloudItem: CloudDownload) => {
+    const id = cloudItem.item_id;
+    setRedownloading((prev) => ({ ...prev, [id]: 0 }));
+    try {
+      await downloadAndSave(
+        id,
+        cloudItem.audio_url,
+        {
+          id,
+          type: cloudItem.item_type,
+          titulo: cloudItem.titulo,
+          artista: cloudItem.artista,
+          duracion: cloudItem.duracion ?? 0,
+          imagen_url: cloudItem.imagen_url ?? "",
+          playlistId: cloudItem.playlist_id,
+          playlistTitulo: cloudItem.playlist_titulo,
+        },
+        (progress) => setRedownloading((prev) => ({ ...prev, [id]: progress }))
+      );
+      setDownloaded((prev) => ({ ...prev, [id]: true }));
+      if (user) getCloudDownloads(user.id).then(setCloudDownloads);
+    } catch (e) {
+      console.error("Redownload error:", e);
+    } finally {
+      setRedownloading((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }
   };
 
   const formatDuration = (secs: number) => {
@@ -792,6 +868,102 @@ export default function OfflinePage() {
                   </div>
                 </div>
               ))
+            )}
+
+            {/* Cloud downloads — available to re-download on this device */}
+            {user && cloudDownloads.filter(c => !downloaded[c.item_id]).length > 0 && (
+              <div>
+                <div style={{
+                  padding: "10px 16px 6px",
+                  display: "flex", alignItems: "center", gap: 8,
+                }}>
+                  <svg width={14} height={14} viewBox="0 0 24 24"
+                       fill="none" stroke="#888" strokeWidth={2}
+                       strokeLinecap="round">
+                    <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+                  </svg>
+                  <span style={{ color: "#666", fontSize: 12, fontWeight: 600 }}>
+                    GUARDADOS EN TU CUENTA
+                  </span>
+                </div>
+                <p style={{ color: "#555", fontSize: 11, padding: "0 16px 8px", margin: 0 }}>
+                  Descargados en otros dispositivos — toca ↓ para tenerlos aquí
+                </p>
+
+                {cloudDownloads
+                  .filter(c => !downloaded[c.item_id])
+                  .map(cloudItem => {
+                    const id = cloudItem.item_id;
+                    const rdl = redownloading[id];
+                    return (
+                      <div key={id} style={{
+                        display: "flex", alignItems: "center", gap: 12,
+                        padding: "10px 16px",
+                        borderBottom: "1px solid #111",
+                        opacity: 0.7,
+                      }}>
+                        <div style={{
+                          width: 44, height: 44, borderRadius: 8,
+                          background: "#1a1a1a", flexShrink: 0,
+                          display: "flex", alignItems: "center",
+                          justifyContent: "center",
+                        }}>
+                          {cloudItem.imagen_url ? (
+                            <img src={cloudItem.imagen_url} alt=""
+                              style={{ width: "100%", height: "100%",
+                                objectFit: "cover", borderRadius: 8 }}/>
+                          ) : (
+                            <span style={{ fontSize: 18 }}>
+                              {cloudItem.item_type === "podcast" ? "🎙️" : "🎵"}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ color: "#888", fontWeight: 600,
+                            margin: 0, fontSize: 13,
+                            whiteSpace: "nowrap", overflow: "hidden",
+                            textOverflow: "ellipsis" }}>
+                            {cloudItem.titulo}
+                          </p>
+                          <p style={{ color: "#555", fontSize: 11, margin: 0 }}>
+                            {cloudItem.artista || cloudItem.item_type}
+                            {rdl !== undefined && ` · ${rdl}%`}
+                          </p>
+                          {rdl !== undefined && (
+                            <div style={{
+                              marginTop: 4, height: 2,
+                              background: "#222", borderRadius: 1,
+                            }}>
+                              <div style={{
+                                height: "100%", width: `${rdl}%`,
+                                background: "#E8522A", borderRadius: 1,
+                                transition: "width 0.2s",
+                              }} />
+                            </div>
+                          )}
+                        </div>
+                        {rdl === undefined ? (
+                          <button
+                            onClick={() => handleRedownload(cloudItem)}
+                            style={{
+                              background: "none", border: "1px solid #333",
+                              color: "#E8522A", cursor: "pointer",
+                              padding: "6px 12px", borderRadius: 100,
+                              fontSize: 12, fontWeight: 700, flexShrink: 0,
+                            }}
+                          >
+                            ↓ Descargar
+                          </button>
+                        ) : (
+                          <span style={{ color: "#E8522A", fontSize: 12, flexShrink: 0 }}>
+                            {rdl}%
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })
+                }
+              </div>
             )}
           </div>
         )}
