@@ -41,7 +41,7 @@ export default function OfflinePage() {
   const [tracks, setTracks] = useState<PlaylistTrack[]>([]);
   const [downloads, setDownloads] = useState<OfflineMeta[]>([]);
   const [storageUsed, setStorageUsed] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [playerState, setPlayerState] = useState(getAudioPlayer().getState());
   const [user, setUser] = useState<User | null>(null);
   const [downloaded, setDownloaded] = useState<Record<string, boolean>>({});
@@ -72,32 +72,55 @@ export default function OfflinePage() {
   }, []);
 
   useEffect(() => {
-    if (tab === "podcasts") loadPodcasts();
-    else if (tab === "playlists") loadPlaylists();
-    else if (tab === "descargas") loadDownloads();
+    let cancelled = false;
+
+    const load = async () => {
+      if (tab === "podcasts") await loadPodcasts();
+      else if (tab === "playlists") await loadPlaylists();
+      else if (tab === "descargas") await loadDownloads();
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
   }, [tab]);
 
   const loadPodcasts = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("podcasts")
-      .select("*")
-      .eq("publicado", true)
-      .order("numero_episodio", { ascending: false });
-    console.log('📻 Podcasts loaded:', data?.map(p => ({ id: p.id, titulo: p.titulo, url_audio: p.url_audio })));
-    setPodcasts(data || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from("podcasts")
+        .select("*")
+        .eq("publicado", true)
+        .order("numero_episodio", { ascending: false });
+      if (error) throw error;
+      setPodcasts(data || []);
+    } catch (e) {
+      console.error("Error loading podcasts:", e);
+      setPodcasts([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadPlaylists = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("playlists")
-      .select("*")
-      .eq("activo", true)
-      .order("titulo");
-    setPlaylists(data || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from("playlists")
+        .select("*")
+        .eq("activo", true)
+        .order("titulo");
+      if (error) throw error;
+      setPlaylists(data || []);
+    } catch (e) {
+      console.error("Error loading playlists:", e);
+      setPlaylists([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadTracks = async (playlist: Playlist) => {
