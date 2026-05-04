@@ -52,33 +52,41 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [debugLog, setDebugLog] = useState<string[]>([])
 
   useEffect(() => {
-    const log = (msg: string) => {
-      const time = new Date().toLocaleTimeString('es', {
-        hour: '2-digit', minute: '2-digit', second: '2-digit'
-      })
-      setDebugLog(prev => [`${time} ${msg}`, ...prev].slice(0, 8))
-    }
-
-    log('App montada')
-
     const handleVisibility = () => {
       if (document.visibilityState === 'hidden') {
-        log('BLOQUEADO')
         lastHiddenRef.current = Date.now()
       }
+
       if (document.visibilityState === 'visible') {
-        const dur = Math.round((Date.now() - lastHiddenRef.current) / 1000)
-        log(`DESBLOQUEADO (${dur}s oculto)`)
-        if (dur > 0) {
-          log(`→ Forzando remount key=${refreshKey + 1}`)
-          setRefreshKey(prev => prev + 1)
+        const hiddenDuration = Date.now() - lastHiddenRef.current
+        const dur = Math.round(hiddenDuration / 1000)
+        setDebugLog(prev => [
+          `${new Date().toLocaleTimeString('es', {hour:'2-digit',minute:'2-digit',second:'2-digit'})} DESBLOQUEADO (${dur}s oculto)`,
+          ...prev
+        ].slice(0, 8))
+
+        if (hiddenDuration > 500) {
+          // Usar función updater para obtener el valor actual
+          setRefreshKey(prev => {
+            const next = prev + 1
+            setDebugLog(d => [
+              `${new Date().toLocaleTimeString('es', {hour:'2-digit',minute:'2-digit',second:'2-digit'})} → Forzando remount key=${next}`,
+              ...d
+            ].slice(0, 8))
+            return next
+          })
         }
+      } else {
+        setDebugLog(prev => [
+          `${new Date().toLocaleTimeString('es', {hour:'2-digit',minute:'2-digit',second:'2-digit'})} BLOQUEADO`,
+          ...prev
+        ].slice(0, 8))
       }
     }
 
     document.addEventListener('visibilitychange', handleVisibility)
     return () => document.removeEventListener('visibilitychange', handleVisibility)
-  }, [])
+  }, []) // Sin dependencias - el updater function resuelve el closure
 
   useEffect(() => {
     if (loading) return;
