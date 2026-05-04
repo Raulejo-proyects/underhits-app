@@ -32,6 +32,31 @@ function getAudioUrl(url: string): string {
   return `${SUPABASE_STORAGE}${url}`;
 }
 
+const SUPABASE_URL = 'https://otpajfcjsehqdkzanbsu.supabase.co'
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+
+const fetchWithTimeout = async (url: string, ms = 6000) => {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), ms)
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      signal: controller.signal,
+      cache: 'no-store',
+    })
+    clearTimeout(timer)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return res.json()
+  } catch (e) {
+    clearTimeout(timer)
+    throw e
+  }
+}
+
 export default function OfflinePage() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("podcasts");
@@ -114,67 +139,38 @@ export default function OfflinePage() {
 
   const loadPodcasts = async () => {
     setLoading(true)
-
-    // Intentar hasta 3 veces con timeout
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let i = 0; i < 3; i++) {
       try {
-        const result = await Promise.race([
-          supabase
-            .from('podcasts')
-            .select('*')
-            .eq('publicado', true)
-            .order('numero_episodio', { ascending: false }),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('timeout')), 5000)
-          )
-        ]) as { data: Podcast[] | null; error: any }
-
-        if (result.error) throw result.error
-        setPodcasts(result.data || [])
+        const data = await fetchWithTimeout(
+          `${SUPABASE_URL}/rest/v1/podcasts?select=*&publicado=eq.true&order=numero_episodio.desc`
+        )
+        setPodcasts(data || [])
         setLoading(false)
-        return // éxito
-      } catch (e: any) {
-        if (attempt < 2) {
-          // Esperar antes de reintentar
-          await new Promise(r => setTimeout(r, 1000))
-          continue
-        }
-        // Último intento fallido
-        setPodcasts([])
-        setLoading(false)
+        return
+      } catch {
+        if (i < 2) await new Promise(r => setTimeout(r, 1500))
       }
     }
+    setPodcasts([])
+    setLoading(false)
   }
 
   const loadPlaylists = async () => {
     setLoading(true)
-
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let i = 0; i < 3; i++) {
       try {
-        const result = await Promise.race([
-          supabase
-            .from('playlists')
-            .select('*')
-            .eq('activo', true)
-            .order('titulo'),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('timeout')), 5000)
-          )
-        ]) as { data: Playlist[] | null; error: any }
-
-        if (result.error) throw result.error
-        setPlaylists(result.data || [])
+        const data = await fetchWithTimeout(
+          `${SUPABASE_URL}/rest/v1/playlists?select=*&activo=eq.true&order=titulo.asc`
+        )
+        setPlaylists(data || [])
         setLoading(false)
         return
-      } catch (e: any) {
-        if (attempt < 2) {
-          await new Promise(r => setTimeout(r, 1000))
-          continue
-        }
-        setPlaylists([])
-        setLoading(false)
+      } catch {
+        if (i < 2) await new Promise(r => setTimeout(r, 1500))
       }
     }
+    setPlaylists([])
+    setLoading(false)
   }
 
   const loadTracks = async (playlist: Playlist) => {
