@@ -49,19 +49,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [showMenu, setShowMenu] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const lastHiddenRef = useRef<number>(0)
+  const [debugLog, setDebugLog] = useState<string[]>([])
 
   useEffect(() => {
+    const log = (msg: string) => {
+      const time = new Date().toLocaleTimeString('es', {
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      })
+      setDebugLog(prev => [`${time} ${msg}`, ...prev].slice(0, 8))
+    }
+
+    log('App montada')
+
     const handleVisibility = () => {
       if (document.visibilityState === 'hidden') {
+        log('BLOQUEADO')
         lastHiddenRef.current = Date.now()
       }
-
       if (document.visibilityState === 'visible') {
-        const hiddenDuration = Date.now() - lastHiddenRef.current
-
-        // Si estuvo oculto más de 3 segundos (bloqueo real)
-        // forzar remount de los componentes hijos
-        if (hiddenDuration > 3000) {
+        const dur = Math.round((Date.now() - lastHiddenRef.current) / 1000)
+        log(`DESBLOQUEADO (${dur}s oculto)`)
+        if (dur > 3) {
+          log(`→ Forzando remount key=${refreshKey + 1}`)
           setRefreshKey(prev => prev + 1)
         }
       }
@@ -204,6 +213,36 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       >
         {children}
       </main>
+
+      {debugLog.length > 0 && (
+        <div
+          onClick={() => setDebugLog([])}
+          style={{
+            position: 'fixed',
+            bottom: 120,
+            left: 8,
+            right: 8,
+            background: 'rgba(0,0,0,0.9)',
+            border: '1px solid #E8522A',
+            borderRadius: 8,
+            padding: '8px 10px',
+            zIndex: 99999,
+            fontSize: 10,
+            fontFamily: 'monospace',
+            maxHeight: 160,
+            overflow: 'auto',
+          }}
+        >
+          <p style={{ color: '#E8522A', margin: '0 0 4px', fontSize: 10, fontWeight: 700 }}>
+            DEBUG (toca para cerrar)
+          </p>
+          {debugLog.map((log, i) => (
+            <p key={i} style={{ color: '#aaa', margin: '2px 0', fontSize: 10 }}>
+              {log}
+            </p>
+          ))}
+        </div>
+      )}
 
       <InstallBanner />
 
