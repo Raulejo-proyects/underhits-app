@@ -197,13 +197,39 @@ export default function OfflinePage() {
   }
 
   const loadTracks = async (playlist: Playlist) => {
-    setSelectedPlaylist(playlist);
-    const { data } = await supabase
-      .from("playlist_tracks")
-      .select("*")
-      .eq("playlist_id", playlist.id)
-      .order("orden");
-    setTracks(data || []);
+    setSelectedPlaylist(playlist)
+    setLoading(true)
+
+    for (let i = 0; i < 3; i++) {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), 5000)
+      try {
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/playlist_tracks?select=*&playlist_id=eq.${playlist.id}&order=orden.asc`,
+          {
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`,
+            },
+            signal: controller.signal,
+            cache: 'no-store',
+          }
+        )
+        clearTimeout(timer)
+        const data = await res.json()
+        setTracks(data || [])
+        setLoading(false)
+        return
+      } catch {
+        clearTimeout(timer)
+        if (i < 2) {
+          await new Promise(r => setTimeout(r, 1000))
+          continue
+        }
+        setTracks([])
+        setLoading(false)
+      }
+    }
   };
 
   const loadDownloads = async () => {

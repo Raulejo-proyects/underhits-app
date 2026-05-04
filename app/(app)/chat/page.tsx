@@ -494,58 +494,49 @@ export default function ChatPage() {
             background: '#0a0a0a',
             paddingBottom: 'env(safe-area-inset-bottom)',
           }}>
-            {!user ? (
-              <div style={{
-                padding: '12px 16px', display: 'flex',
-                alignItems: 'center', justifyContent: 'space-between', gap: 12,
-              }}>
-                <p style={{ color: '#555', fontSize: 13, margin: 0 }}>
-                  Solo usuarios registrados pueden chatear
-                </p>
-                <button
-                  onClick={() => router.push('/registro')}
-                  style={{
-                    background: '#E8522A', border: 'none', color: '#fff',
-                    padding: '8px 16px', borderRadius: 100,
-                    fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
-                  }}
-                >
-                  Ingresar
-                </button>
-              </div>
-            ) : (
-              <div style={{ padding: '10px 12px', display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  placeholder="Escribe un mensaje..."
-                  value={newMsg}
-                  onChange={(e) => setNewMsg(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-                  style={{
-                    flex: 1, background: '#1e1e1e',
-                    border: '1px solid #2a2a2a', borderRadius: 22,
-                    padding: '10px 16px', color: '#f5f5f5',
-                    fontSize: 14, outline: 'none', fontFamily: 'inherit',
-                  }}
-                />
-                <button
-                  onClick={handleSend}
-                  disabled={sending || !newMsg.trim()}
-                  style={{
-                    width: 40, height: 40, borderRadius: '50%',
-                    background: newMsg.trim() ? '#E8522A' : '#1e1e1e',
-                    border: 'none', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'background 0.2s', flexShrink: 0,
-                  }}
-                >
-                  <svg width={18} height={18} viewBox="0 0 24 24" fill="#fff">
-                    <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/>
-                  </svg>
-                </button>
-              </div>
-            )}
+            <div style={{
+              padding: '10px 12px',
+              display: 'flex', gap: 8, alignItems: 'center',
+            }}>
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder={user ? "Escribe un mensaje..." : "Inicia sesión para chatear"}
+                value={newMsg}
+                onChange={(e) => user && setNewMsg(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                onClick={() => { if (!user) router.push('/registro') }}
+                readOnly={!user}
+                style={{
+                  flex: 1,
+                  background: '#1e1e1e',
+                  border: '1px solid #2a2a2a',
+                  borderRadius: 22,
+                  padding: '10px 16px',
+                  color: user ? '#f5f5f5' : '#555',
+                  fontSize: 14,
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                  cursor: user ? 'text' : 'pointer',
+                }}
+              />
+              <button
+                onClick={user ? handleSend : () => router.push('/registro')}
+                disabled={user ? (sending || !newMsg.trim()) : false}
+                style={{
+                  width: 40, height: 40, borderRadius: '50%',
+                  background: user && newMsg.trim() ? '#E8522A' : '#1e1e1e',
+                  border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background 0.2s', flexShrink: 0,
+                }}
+              >
+                <svg width={18} height={18} viewBox="0 0 24 24" fill="#fff">
+                  <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/>
+                </svg>
+              </button>
+            </div>
           </div>
         </>
       )}
