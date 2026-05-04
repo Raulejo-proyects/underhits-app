@@ -37,18 +37,41 @@ export default function ChatPage() {
 
   // Auth — solo al montar
   useEffect(() => {
+    // Obtener sesión inicial UNA sola vez
     supabase.auth.getSession().then(({ data }) => {
-      const u = data.session?.user ?? null;
-      setUser(u);
+      const u = data.session?.user ?? null
+      setUser(u)
       if (u) {
         const nombre =
           u.user_metadata?.nombre ||
           u.email?.split("@")[0] ||
-          "Usuario";
-        setUserName(nombre);
+          "Usuario"
+        setUserName(nombre)
       }
-    });
-  }, []);
+    })
+
+    // Solo escuchar login/logout real
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (
+          event === 'TOKEN_REFRESHED' ||
+          event === 'INITIAL_SESSION'
+        ) return
+
+        const u = session?.user ?? null
+        setUser(u)
+        if (u) {
+          const nombre =
+            u.user_metadata?.nombre ||
+            u.email?.split("@")[0] ||
+            "Usuario"
+          setUserName(nombre)
+        }
+      }
+    )
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   // Config del chat — solo al montar
   useEffect(() => {

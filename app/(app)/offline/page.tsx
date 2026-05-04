@@ -56,30 +56,45 @@ export default function OfflinePage() {
   useEffect(() => {
     const unsub = player.subscribe(setPlayerState)
 
-    // Usar onAuthStateChange en vez de getSession
-    // para evitar conflicto de locks
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        const u = session?.user ?? null
-        setUser(u)
-        if (u) {
-          getCloudDownloads(u.id).then(setCloudDownloads)
-        }
-      }
-    )
-
-    // Cargar estado de IndexedDB
+    // Cargar estado de IndexedDB al montar
     getAllOfflineMeta().then((items) => {
       const map: Record<string, boolean> = {}
       items.forEach((item) => { map[item.id] = true })
       setDownloaded(map)
     })
 
+    // Obtener sesión inicial UNA sola vez
+    supabase.auth.getSession().then(({ data }) => {
+      const u = data.session?.user ?? null
+      setUser(u)
+      if (u) {
+        getCloudDownloads(u.id).then(setCloudDownloads)
+      }
+    })
+
+    // Escuchar cambios de auth SOLO para login/logout real
+    // NO para TOKEN_REFRESHED ni reactivación de pantalla
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        // Ignorar eventos que no son cambios reales de sesión
+        if (
+          event === 'TOKEN_REFRESHED' ||
+          event === 'INITIAL_SESSION'
+        ) return
+
+        const u = session?.user ?? null
+        setUser(u)
+        if (u && (event === 'SIGNED_IN')) {
+          getCloudDownloads(u.id).then(setCloudDownloads)
+        }
+      }
+    )
+
     return () => {
       unsub()
       subscription.unsubscribe()
     }
-  }, []);
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let cancelled = false;
