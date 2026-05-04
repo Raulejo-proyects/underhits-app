@@ -205,22 +205,21 @@ export default function ChatPage() {
           if (!mounted) return;
           const newMessage = payload.new as ChatMensaje;
           setMessages((prev) => {
-            const exists = prev.some(
+            // Buscar si ya existe este mensaje (temp- o confirmed-)
+            const existsTemp = prev.find(
               (m) =>
-                m.id === newMessage.id ||
-                (m.id.startsWith("temp-") &&
-                  m.usuario_id === newMessage.usuario_id &&
-                  m.mensaje === newMessage.mensaje)
-            );
-            if (exists) {
-              return prev.map((m) =>
-                m.id.startsWith("temp-") &&
+                (m.id.startsWith("temp-") || m.id.startsWith("confirmed-")) &&
                 m.usuario_id === newMessage.usuario_id &&
                 m.mensaje === newMessage.mensaje
-                  ? newMessage
-                  : m
+            );
+            if (existsTemp) {
+              // Reemplazar el temp/confirmed con el real de DB
+              return prev.map((m) =>
+                m.id === existsTemp.id ? newMessage : m
               );
             }
+            // Si no existe, agregar
+            if (prev.some(m => m.id === newMessage.id)) return prev;
             return [...prev, newMessage];
           });
           setTimeout(
@@ -280,16 +279,13 @@ export default function ChatPage() {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       setNewMsg(msg);
     } else {
-      // Reemplazar optimista con mensaje confirmado
-      // sin esperar el Realtime (puede estar lento en mobile)
+      // Marcar como enviado cambiando el ID
+      // El Realtime llegará y reemplazará este confirmed-
+      const confirmedId = `confirmed-${tempId}`
       setMessages((prev) =>
         prev.map((m) =>
           m.id === tempId
-            ? {
-                ...m,
-                id: `confirmed-${Date.now()}`, // ya no es temp-
-                created_at: new Date().toISOString(),
-              }
+            ? { ...m, id: confirmedId }
             : m
         )
       );
