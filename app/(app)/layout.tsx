@@ -100,7 +100,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                      pathname === '/chat'
 
   return (
-    <div className="flex flex-col h-full">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {!loading && (
         <div style={{
           display: 'flex',
@@ -221,6 +221,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
+          paddingBottom: pathname === '/chat' ? 0 : 0,
         }}
       >
         {children}
@@ -262,28 +263,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <MiniPlayer />
 
       <nav
-        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full safe-bottom"
         style={{
-          maxWidth: "430px",
-          background: "#111",
-          borderTop: "1px solid #222",
+          background: '#111',
+          borderTop: '1px solid #222',
           zIndex: 50,
+          flexShrink: 0,
+          paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
-        <div className="flex items-center justify-around py-2">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', paddingTop: 8, paddingBottom: 8 }}>
           {tabs.map((tab) => {
             const active = pathname.startsWith(tab.href);
             return (
               <Link
                 key={tab.href}
                 href={tab.href}
-                className="flex flex-col items-center gap-1 px-6 py-1"
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '4px 24px', textDecoration: 'none' }}
               >
                 {tab.icon(active)}
-                <span
-                  className="text-xs font-medium"
-                  style={{ color: active ? "#E8522A" : "#888" }}
-                >
+                <span style={{ fontSize: 11, fontWeight: 500, color: active ? '#E8522A' : '#888' }}>
                   {tab.label}
                 </span>
               </Link>
