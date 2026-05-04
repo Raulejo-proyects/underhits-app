@@ -37,36 +37,28 @@ export default function ChatPage() {
 
   // Auth — solo al montar
   useEffect(() => {
-    // Leer sesión desde localStorage primero (instantáneo)
-    try {
-      const stored = localStorage.getItem('sb-underhits-pwa')
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        const u = parsed?.user ?? null
+    const getUser = async () => {
+      try {
+        const result = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('timeout')), 3000)
+          )
+        ]) as any
+        const u = result?.data?.session?.user ?? null
+        setUser(u)
         if (u) {
-          setUser(u)
           const nombre =
             u.user_metadata?.nombre ||
             u.email?.split('@')[0] ||
             'Usuario'
           setUserName(nombre)
-          return // no necesitamos getSession
         }
+      } catch {
+        // timeout o error — dejar user como null
       }
-    } catch {}
-
-    // Fallback: getSession normal
-    supabase.auth.getSession().then(({ data }) => {
-      const u = data.session?.user ?? null
-      setUser(u)
-      if (u) {
-        const nombre =
-          u.user_metadata?.nombre ||
-          u.email?.split('@')[0] ||
-          'Usuario'
-        setUserName(nombre)
-      }
-    })
+    }
+    getUser()
   }, [])
 
   // Config del chat — solo al montar

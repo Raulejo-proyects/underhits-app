@@ -88,31 +88,20 @@ export default function OfflinePage() {
       setDownloaded(map)
     })
 
-    // Leer sesión con fetch nativo para evitar congelamiento
-    const getSession = async () => {
+    const getUser = async () => {
       try {
-        const stored = localStorage.getItem('sb-underhits-pwa')
-        if (stored) {
-          const parsed = JSON.parse(stored)
-          const u = parsed?.user ?? null
-          setUser(u)
-          if (u) {
-            getCloudDownloads(u.id).then(setCloudDownloads)
-          }
-          return
-        }
-      } catch {}
-
-      // Fallback: usar supabase normal
-      try {
-        const { data } = await supabase.auth.getSession()
-        const u = data.session?.user ?? null
+        const result = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('timeout')), 3000)
+          )
+        ]) as any
+        const u = result?.data?.session?.user ?? null
         setUser(u)
         if (u) getCloudDownloads(u.id).then(setCloudDownloads)
       } catch {}
     }
-
-    getSession()
+    getUser()
 
     // Escuchar cambios de auth SOLO para login/logout real
     // NO para TOKEN_REFRESHED ni reactivación de pantalla
