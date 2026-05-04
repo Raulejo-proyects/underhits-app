@@ -279,6 +279,20 @@ export default function ChatPage() {
     if (error) {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       setNewMsg(msg);
+    } else {
+      // Reemplazar optimista con mensaje confirmado
+      // sin esperar el Realtime (puede estar lento en mobile)
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId
+            ? {
+                ...m,
+                id: `confirmed-${Date.now()}`, // ya no es temp-
+                created_at: new Date().toISOString(),
+              }
+            : m
+        )
+      );
     }
 
     setSending(false);
