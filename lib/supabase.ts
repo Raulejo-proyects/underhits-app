@@ -3,17 +3,15 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = 'https://otpajfcjsehqdkzanbsu.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-// Singleton global para evitar múltiples instancias
-// que compiten por el lock de autenticación
 declare global {
   interface Window {
     __supabaseClient?: ReturnType<typeof createClient>
+    __supabaseVisibilityHandler?: () => void
   }
 }
 
 function getSupabaseClient() {
   if (typeof window === 'undefined') {
-    // Server side: crear instancia temporal
     return createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: false,
@@ -22,7 +20,6 @@ function getSupabaseClient() {
     })
   }
 
-  // Client side: reusar instancia global
   if (!window.__supabaseClient) {
     window.__supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
@@ -34,16 +31,37 @@ function getSupabaseClient() {
       realtime: {
         params: {
           eventsPerSecond: 10,
-        }
+        },
+        // Reconexión automática más agresiva
+        reconnectAfterMs: (tries: number) => {
+          return Math.min(tries * 1000, 10000)
+        },
       }
     })
+
+    // Manejar visibilitychange — cuando el dispositivo
+    // se desbloquea, reconectar Realtime sin re-renders
+    if (!window.__supabaseVisibilityHandler) {
+      window.__supabaseVisibilityHandler = () => {
+        if (document.visibilityState === 'visible') {
+          // Pequeño delay para que el navegador termine de reactivarse
+          setTimeout(() => {
+            window.__supabaseClient?.realtime.connect()
+          }, 500)
+        }
+      }
+      document.addEventListener(
+        'visibilitychange',
+        window.__supabaseVisibilityHandler
+      )
+    }
   }
+
   return window.__supabaseClient
 }
 
 export const supabase = getSupabaseClient()
 
-// Mantener los tipos exportados
 export type Podcast = {
   id: string
   titulo: string
