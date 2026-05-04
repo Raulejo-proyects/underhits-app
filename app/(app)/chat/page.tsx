@@ -299,6 +299,7 @@ export default function ChatPage() {
     <div style={{
       height: '100%', display: 'flex',
       flexDirection: 'column', background: '#0a0a0a',
+      overflow: 'hidden', position: 'relative',
     }}>
       {/* Estado: verificando config */}
       {checkingConfig && (
@@ -493,6 +494,8 @@ export default function ChatPage() {
             borderTop: '1px solid #1e1e1e',
             background: '#0a0a0a',
             paddingBottom: 'env(safe-area-inset-bottom)',
+            position: 'relative',
+            zIndex: 10,
           }}>
             <div style={{
               padding: '10px 12px',
