@@ -78,27 +78,32 @@ export default function ChatPage() {
     let mounted = true;
 
     const fetchConfig = async () => {
-      for (let attempt = 0; attempt < 3; attempt++) {
+      for (let i = 0; i < 3; i++) {
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), 5000)
         try {
-          const result = await Promise.race([
-            supabase
-              .from('app_config')
-              .select('value')
-              .eq('key', 'chat_enabled')
-              .single(),
-            new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error('timeout')), 5000)
-            )
-          ]) as { data: any; error: any }
-
+          const res = await fetch(
+            'https://otpajfcjsehqdkzanbsu.supabase.co/rest/v1/app_config?select=value&key=eq.chat_enabled&limit=1',
+            {
+              headers: {
+                'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+                'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+              },
+              signal: controller.signal,
+              cache: 'no-store',
+            }
+          )
+          clearTimeout(timer)
+          const data = await res.json()
           if (mounted) {
-            setChatEnabled(result.data?.value === 'true')
+            setChatEnabled(data?.[0]?.value === 'true')
             setCheckingConfig(false)
           }
           return
         } catch {
-          if (attempt < 2) {
-            await new Promise(r => setTimeout(r, 1000))
+          clearTimeout(timer)
+          if (i < 2) {
+            await new Promise(r => setTimeout(r, 1500))
             continue
           }
           if (mounted) {
@@ -108,6 +113,7 @@ export default function ChatPage() {
         }
       }
     }
+
     fetchConfig()
 
     const configChannel = supabase

@@ -88,14 +88,31 @@ export default function OfflinePage() {
       setDownloaded(map)
     })
 
-    // Obtener sesión inicial UNA sola vez
-    supabase.auth.getSession().then(({ data }) => {
-      const u = data.session?.user ?? null
-      setUser(u)
-      if (u) {
-        getCloudDownloads(u.id).then(setCloudDownloads)
-      }
-    })
+    // Leer sesión con fetch nativo para evitar congelamiento
+    const getSession = async () => {
+      try {
+        const stored = localStorage.getItem('sb-underhits-pwa')
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          const u = parsed?.user ?? null
+          setUser(u)
+          if (u) {
+            getCloudDownloads(u.id).then(setCloudDownloads)
+          }
+          return
+        }
+      } catch {}
+
+      // Fallback: usar supabase normal
+      try {
+        const { data } = await supabase.auth.getSession()
+        const u = data.session?.user ?? null
+        setUser(u)
+        if (u) getCloudDownloads(u.id).then(setCloudDownloads)
+      } catch {}
+    }
+
+    getSession()
 
     // Escuchar cambios de auth SOLO para login/logout real
     // NO para TOKEN_REFRESHED ni reactivación de pantalla
