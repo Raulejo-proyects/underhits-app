@@ -37,40 +37,36 @@ export default function ChatPage() {
 
   // Auth — solo al montar
   useEffect(() => {
-    // Obtener sesión inicial UNA sola vez
+    // Leer sesión desde localStorage primero (instantáneo)
+    try {
+      const stored = localStorage.getItem('sb-underhits-pwa')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        const u = parsed?.user ?? null
+        if (u) {
+          setUser(u)
+          const nombre =
+            u.user_metadata?.nombre ||
+            u.email?.split('@')[0] ||
+            'Usuario'
+          setUserName(nombre)
+          return // no necesitamos getSession
+        }
+      }
+    } catch {}
+
+    // Fallback: getSession normal
     supabase.auth.getSession().then(({ data }) => {
       const u = data.session?.user ?? null
       setUser(u)
       if (u) {
         const nombre =
           u.user_metadata?.nombre ||
-          u.email?.split("@")[0] ||
-          "Usuario"
+          u.email?.split('@')[0] ||
+          'Usuario'
         setUserName(nombre)
       }
     })
-
-    // Solo escuchar login/logout real
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (
-          event === 'TOKEN_REFRESHED' ||
-          event === 'INITIAL_SESSION'
-        ) return
-
-        const u = session?.user ?? null
-        setUser(u)
-        if (u) {
-          const nombre =
-            u.user_metadata?.nombre ||
-            u.email?.split("@")[0] ||
-            "Usuario"
-          setUserName(nombre)
-        }
-      }
-    )
-
-    return () => subscription.unsubscribe()
   }, [])
 
   // Config del chat — solo al montar
@@ -144,21 +140,47 @@ export default function ChatPage() {
 
     // Cargar mensajes iniciales
     setLoading(true);
-    supabase
-      .from("chat_mensajes")
-      .select("*")
-      .order("created_at", { ascending: true })
-      .limit(100)
-      .then(({ data }) => {
-        if (mounted) {
-          setMessages(data || []);
-          setLoading(false);
+    const loadMsgs = async () => {
+      for (let i = 0; i < 3; i++) {
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), 5000)
+        try {
+          const res = await fetch(
+            'https://otpajfcjsehqdkzanbsu.supabase.co/rest/v1/chat_mensajes?select=*&order=created_at.asc&limit=100',
+            {
+              headers: {
+                'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+                'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+              },
+              signal: controller.signal,
+              cache: 'no-store',
+            }
+          )
+          clearTimeout(timer)
+          if (!mounted) return
+          const data = await res.json()
+          setMessages(data || [])
+          setLoading(false)
           setTimeout(
-            () => bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
+            () => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }),
             100
-          );
+          )
+          return
+        } catch {
+          clearTimeout(timer)
+          if (i < 2) {
+            await new Promise(r => setTimeout(r, 1500))
+            continue
+          }
+          if (mounted) {
+            setMessages([])
+            setLoading(false)
+          }
         }
-      });
+      }
+    }
+
+    loadMsgs()
 
     // Realtime
     const channel = supabase
