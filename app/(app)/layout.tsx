@@ -95,6 +95,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [loading, user, pathname, router]);
 
+  const isAppRoute = pathname === '/radio' ||
+                     pathname === '/offline' ||
+                     pathname === '/chat'
+
   return (
     <div className="flex flex-col h-full">
       {!loading && (
@@ -211,7 +215,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       )}
       <main
-        key={refreshKey}
+        key={isAppRoute ? refreshKey : 'auth'}
         style={{
           flex: 1,
           overflow: 'hidden',
