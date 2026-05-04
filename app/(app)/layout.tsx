@@ -69,7 +69,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       if (document.visibilityState === 'visible') {
         const dur = Math.round((Date.now() - lastHiddenRef.current) / 1000)
         log(`DESBLOQUEADO (${dur}s oculto)`)
-        if (dur > 3) {
+        if (dur > 0) {
           log(`→ Forzando remount key=${refreshKey + 1}`)
           setRefreshKey(prev => prev + 1)
         }
