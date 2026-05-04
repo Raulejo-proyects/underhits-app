@@ -30,9 +30,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (session?.user) {
           try {
-            sessionStorage.setItem('underhits-user-id', session.user.id)
-            sessionStorage.setItem('underhits-user-email', session.user.email ?? '')
-            sessionStorage.setItem('underhits-user-nombre',
+            localStorage.setItem('uh-uid', session.user.id)
+            localStorage.setItem('uh-email', session.user.email ?? '')
+            localStorage.setItem('uh-nombre',
               session.user.user_metadata?.nombre ||
               session.user.email?.split('@')[0] ||
               'Oyente'
@@ -40,9 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } catch {}
         } else {
           try {
-            sessionStorage.removeItem('underhits-user-id')
-            sessionStorage.removeItem('underhits-user-email')
-            sessionStorage.removeItem('underhits-user-nombre')
+            localStorage.removeItem('uh-uid')
+            localStorage.removeItem('uh-email')
+            localStorage.removeItem('uh-nombre')
           } catch {}
         }
 

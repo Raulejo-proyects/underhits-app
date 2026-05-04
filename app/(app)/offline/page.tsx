@@ -89,25 +89,23 @@ export default function OfflinePage() {
     })
 
     const getUser = async () => {
-      // Primero intentar sessionStorage (instantáneo, no se congela)
       try {
-        const userId = sessionStorage.getItem('underhits-user-id')
-        const userEmail = sessionStorage.getItem('underhits-user-email')
-        if (userId && userEmail) {
+        const uid = localStorage.getItem('uh-uid')
+        const email = localStorage.getItem('uh-email')
+        if (uid && email) {
           const u = {
-            id: userId,
-            email: userEmail,
+            id: uid,
+            email,
             user_metadata: {
-              nombre: sessionStorage.getItem('underhits-user-nombre') || ''
+              nombre: localStorage.getItem('uh-nombre') || ''
             }
           } as any
           setUser(u)
-          getCloudDownloads(userId).then(setCloudDownloads)
+          getCloudDownloads(uid).then(setCloudDownloads)
           return
         }
       } catch {}
 
-      // Fallback con timeout
       try {
         const result = await Promise.race([
           supabase.auth.getSession(),
