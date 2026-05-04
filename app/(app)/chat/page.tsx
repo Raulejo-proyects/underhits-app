@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getAudioPlayer, PlayerState } from '@/lib/audioPlayer'
 import { supabase } from "@/lib/supabase";
 import type { ChatMensaje } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
 export default function ChatPage() {
   const router = useRouter();
+  const [playerState, setPlayerState] = useState<PlayerState | null>(null)
   const [user, setUser] = useState<User | null>(null);
   const [userName, setUserName] = useState("");
   const [messages, setMessages] = useState<ChatMensaje[]>([]);
@@ -34,6 +36,12 @@ export default function ChatPage() {
   useEffect(() => {
     loadMessagesRef.current = loadMessages;
   }, [loadMessages]);
+
+  useEffect(() => {
+    const player = getAudioPlayer()
+    const unsub = player.subscribe(setPlayerState)
+    return unsub
+  }, [])
 
   // Auth — solo al montar
   useEffect(() => {
@@ -295,6 +303,11 @@ export default function ChatPage() {
     return colors[userId.charCodeAt(0) % colors.length];
   };
 
+  const miniPlayerVisible = !!(
+    playerState &&
+    (playerState.isPlaying || playerState.currentUrl)
+  )
+
   return (
     <div style={{
       height: '100%',
@@ -404,6 +417,7 @@ export default function ChatPage() {
           background: '#0a0a0a',
           paddingBottom: 'env(safe-area-inset-bottom)',
           zIndex: 10,
+          marginBottom: miniPlayerVisible ? 48 : 0,
         }}>
           <div style={{ padding: '10px 12px', display: 'flex', gap: 8, alignItems: 'center' }}>
             <input
