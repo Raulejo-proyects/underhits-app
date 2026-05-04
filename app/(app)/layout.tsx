@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { InstallBanner } from "@/components/InstallBanner";
 import { MiniPlayer } from "@/components/MiniPlayer";
 import { useAuth } from "@/lib/authContext";
@@ -47,6 +47,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, loading, signOut } = useAuth();
   const [showMenu, setShowMenu] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const lastHiddenRef = useRef<number>(0)
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        lastHiddenRef.current = Date.now()
+      }
+
+      if (document.visibilityState === 'visible') {
+        const hiddenDuration = Date.now() - lastHiddenRef.current
+
+        // Si estuvo oculto más de 3 segundos (bloqueo real)
+        // forzar remount de los componentes hijos
+        if (hiddenDuration > 3000) {
+          setRefreshKey(prev => prev + 1)
+        }
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [])
 
   useEffect(() => {
     if (loading) return;
@@ -170,7 +193,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           )}
         </div>
       )}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden" style={{ paddingBottom: "72px" }}>
+      <main
+        key={refreshKey}
+        style={{
+          flex: 1,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
         {children}
       </main>
 
