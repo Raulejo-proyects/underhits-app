@@ -49,8 +49,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [showMenu, setShowMenu] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const lastHiddenRef = useRef<number>(0)
-  const [debugLog, setDebugLog] = useState<string[]>([])
-
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'hidden') {
@@ -59,28 +57,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       if (document.visibilityState === 'visible') {
         const hiddenDuration = Date.now() - lastHiddenRef.current
-        const dur = Math.round(hiddenDuration / 1000)
-        setDebugLog(prev => [
-          `${new Date().toLocaleTimeString('es', {hour:'2-digit',minute:'2-digit',second:'2-digit'})} DESBLOQUEADO (${dur}s oculto)`,
-          ...prev
-        ].slice(0, 8))
 
         if (hiddenDuration > 500) {
-          // Usar función updater para obtener el valor actual
-          setRefreshKey(prev => {
-            const next = prev + 1
-            setDebugLog(d => [
-              `${new Date().toLocaleTimeString('es', {hour:'2-digit',minute:'2-digit',second:'2-digit'})} → Forzando remount key=${next}`,
-              ...d
-            ].slice(0, 8))
-            return next
-          })
+          setRefreshKey(prev => prev + 1)
         }
-      } else {
-        setDebugLog(prev => [
-          `${new Date().toLocaleTimeString('es', {hour:'2-digit',minute:'2-digit',second:'2-digit'})} BLOQUEADO`,
-          ...prev
-        ].slice(0, 8))
       }
     }
 
@@ -226,36 +206,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       >
         {children}
       </main>
-
-      {debugLog.length > 0 && (
-        <div
-          onClick={() => setDebugLog([])}
-          style={{
-            position: 'fixed',
-            bottom: 120,
-            left: 8,
-            right: 8,
-            background: 'rgba(0,0,0,0.9)',
-            border: '1px solid #E8522A',
-            borderRadius: 8,
-            padding: '8px 10px',
-            zIndex: 99999,
-            fontSize: 10,
-            fontFamily: 'monospace',
-            maxHeight: 160,
-            overflow: 'auto',
-          }}
-        >
-          <p style={{ color: '#E8522A', margin: '0 0 4px', fontSize: 10, fontWeight: 700 }}>
-            DEBUG (toca para cerrar)
-          </p>
-          {debugLog.map((log, i) => (
-            <p key={i} style={{ color: '#aaa', margin: '2px 0', fontSize: 10 }}>
-              {log}
-            </p>
-          ))}
-        </div>
-      )}
 
       <InstallBanner />
 
