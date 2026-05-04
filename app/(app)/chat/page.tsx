@@ -38,6 +38,23 @@ export default function ChatPage() {
   // Auth — solo al montar
   useEffect(() => {
     const getUser = async () => {
+      // Primero sessionStorage
+      try {
+        const userId = sessionStorage.getItem('underhits-user-id')
+        const userEmail = sessionStorage.getItem('underhits-user-email')
+        const userName = sessionStorage.getItem('underhits-user-nombre')
+        if (userId && userEmail) {
+          setUser({
+            id: userId,
+            email: userEmail,
+            user_metadata: { nombre: userName || '' }
+          } as any)
+          setUserName(userName || userEmail.split('@')[0] || 'Oyente')
+          return
+        }
+      } catch {}
+
+      // Fallback con timeout
       try {
         const result = await Promise.race([
           supabase.auth.getSession(),
@@ -54,9 +71,7 @@ export default function ChatPage() {
             'Usuario'
           setUserName(nombre)
         }
-      } catch {
-        // timeout o error — dejar user como null
-      }
+      } catch {}
     }
     getUser()
   }, [])

@@ -28,6 +28,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         setLoading(false);
 
+        if (session?.user) {
+          try {
+            sessionStorage.setItem('underhits-user-id', session.user.id)
+            sessionStorage.setItem('underhits-user-email', session.user.email ?? '')
+            sessionStorage.setItem('underhits-user-nombre',
+              session.user.user_metadata?.nombre ||
+              session.user.email?.split('@')[0] ||
+              'Oyente'
+            )
+          } catch {}
+        } else {
+          try {
+            sessionStorage.removeItem('underhits-user-id')
+            sessionStorage.removeItem('underhits-user-email')
+            sessionStorage.removeItem('underhits-user-nombre')
+          } catch {}
+        }
+
         if (_event === 'SIGNED_IN' && session?.user) {
           const u = session.user;
           const pendingNombre = localStorage.getItem('pending-nombre');
