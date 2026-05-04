@@ -113,40 +113,69 @@ export default function OfflinePage() {
   }, [tab]);
 
   const loadPodcasts = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("podcasts")
-        .select("*")
-        .eq("publicado", true)
-        .order("numero_episodio", { ascending: false });
-      if (error) throw error;
-      setPodcasts(data || []);
-    } catch (e) {
-      console.error("Error loading podcasts:", e);
-      setPodcasts([]);
-    } finally {
-      setLoading(false);
+    setLoading(true)
+
+    // Intentar hasta 3 veces con timeout
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const result = await Promise.race([
+          supabase
+            .from('podcasts')
+            .select('*')
+            .eq('publicado', true)
+            .order('numero_episodio', { ascending: false }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('timeout')), 5000)
+          )
+        ]) as { data: Podcast[] | null; error: any }
+
+        if (result.error) throw result.error
+        setPodcasts(result.data || [])
+        setLoading(false)
+        return // éxito
+      } catch (e: any) {
+        if (attempt < 2) {
+          // Esperar antes de reintentar
+          await new Promise(r => setTimeout(r, 1000))
+          continue
+        }
+        // Último intento fallido
+        setPodcasts([])
+        setLoading(false)
+      }
     }
-  };
+  }
 
   const loadPlaylists = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("playlists")
-        .select("*")
-        .eq("activo", true)
-        .order("titulo");
-      if (error) throw error;
-      setPlaylists(data || []);
-    } catch (e) {
-      console.error("Error loading playlists:", e);
-      setPlaylists([]);
-    } finally {
-      setLoading(false);
+    setLoading(true)
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const result = await Promise.race([
+          supabase
+            .from('playlists')
+            .select('*')
+            .eq('activo', true)
+            .order('titulo'),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('timeout')), 5000)
+          )
+        ]) as { data: Playlist[] | null; error: any }
+
+        if (result.error) throw result.error
+        setPlaylists(result.data || [])
+        setLoading(false)
+        return
+      } catch (e: any) {
+        if (attempt < 2) {
+          await new Promise(r => setTimeout(r, 1000))
+          continue
+        }
+        setPlaylists([])
+        setLoading(false)
+      }
     }
-  };
+  }
 
   const loadTracks = async (playlist: Playlist) => {
     setSelectedPlaylist(playlist);

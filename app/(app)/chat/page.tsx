@@ -77,20 +77,38 @@ export default function ChatPage() {
   useEffect(() => {
     let mounted = true;
 
-    (async () => {
-      try {
-        const { data } = await supabase
-          .from("app_config")
-          .select("value")
-          .eq("key", "chat_enabled")
-          .single();
-        if (mounted) setChatEnabled(data?.value === "true");
-      } catch {
-        if (mounted) setChatEnabled(false);
-      } finally {
-        if (mounted) setCheckingConfig(false);
+    const fetchConfig = async () => {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const result = await Promise.race([
+            supabase
+              .from('app_config')
+              .select('value')
+              .eq('key', 'chat_enabled')
+              .single(),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('timeout')), 5000)
+            )
+          ]) as { data: any; error: any }
+
+          if (mounted) {
+            setChatEnabled(result.data?.value === 'true')
+            setCheckingConfig(false)
+          }
+          return
+        } catch {
+          if (attempt < 2) {
+            await new Promise(r => setTimeout(r, 1000))
+            continue
+          }
+          if (mounted) {
+            setChatEnabled(false)
+            setCheckingConfig(false)
+          }
+        }
       }
-    })();
+    }
+    fetchConfig()
 
     const configChannel = supabase
       .channel("app-config-chat-v2")
