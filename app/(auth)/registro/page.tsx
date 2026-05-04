@@ -33,7 +33,12 @@ export default function RegistroPage() {
         setShowConfirmation(true)
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error al registrarse')
+      const msg = err instanceof Error ? err.message : ''
+      if (msg.toLowerCase().includes('already registered') || msg.includes('422')) {
+        setError('Este correo ya tiene una cuenta. Iniciá sesión.')
+      } else {
+        setError(msg || 'Error al registrarse')
+      }
     } finally {
       setLoading(false)
     }
@@ -146,6 +151,22 @@ export default function RegistroPage() {
         {error && (
           <p className="text-sm text-center" style={{ color: '#E8522A' }}>
             {error}
+            {error.includes('Iniciá sesión') && (
+              <>
+                {' '}
+                <button
+                  type="button"
+                  onClick={() => router.push('/login')}
+                  style={{
+                    color: '#fff', background: 'none', border: 'none',
+                    cursor: 'pointer', textDecoration: 'underline',
+                    fontSize: 'inherit', fontWeight: 700, padding: 0,
+                  }}
+                >
+                  Ir al login
+                </button>
+              </>
+            )}
           </p>
         )}
         <div className="flex gap-3 pt-2">
