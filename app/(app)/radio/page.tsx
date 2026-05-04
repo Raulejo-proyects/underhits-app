@@ -13,12 +13,24 @@ export default function RadioPage() {
   const [state, setState] = useState(player.getState());
   const [user, setUser] = useState<User | null>(null);
   const [connecting, setConnecting] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
     const unsub = player.subscribe(setState);
     supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
     return unsub;
   }, []);
+
+  useEffect(() => {
+    const standalone = window.matchMedia('(display-mode: standalone)').matches
+      || (window.navigator as any).standalone === true
+    setIsInstalled(standalone)
+
+    const mediaQuery = window.matchMedia('(display-mode: standalone)')
+    const handler = (e: MediaQueryListEvent) => setIsInstalled(e.matches)
+    mediaQuery.addEventListener('change', handler)
+    return () => mediaQuery.removeEventListener('change', handler)
+  }, [])
 
   useEffect(() => {
     const currentState = player.getState();
@@ -312,7 +324,7 @@ export default function RadioPage() {
             Contenido Offline
           </button>
 
-          {!user && (
+          {!isInstalled && !user && (
             <button
               onClick={() => window.dispatchEvent(new CustomEvent("show-install-banner"))}
               className="w-full py-4 rounded-2xl font-semibold flex items-center justify-center gap-3"
