@@ -88,21 +88,30 @@ class AudioPlayerSingleton {
         }
       });
 
-      this.audio.addEventListener("timeupdate", () => {
-        if ("mediaSession" in navigator && this.audio && this.audio.duration) {
+      this.audio.addEventListener('timeupdate', () => {
+        if (!this.state.isLive &&
+            'mediaSession' in navigator &&
+            this.audio &&
+            this.audio.duration &&
+            !isNaN(this.audio.duration) &&
+            isFinite(this.audio.duration)) {
           try {
             navigator.mediaSession.setPositionState({
               duration: this.audio.duration,
-              playbackRate: this.audio.playbackRate,
-              position: this.audio.currentTime,
-            });
+              playbackRate: this.audio.playbackRate || 1,
+              position: Math.min(this.audio.currentTime, this.audio.duration),
+            })
           } catch {}
         }
-      });
+      })
 
-      this.audio.addEventListener("loadedmetadata", () => {
-        this.updateMediaSession(this.state);
-      });
+      this.audio.addEventListener('loadedmetadata', () => {
+        this.updateMediaSession(this.state)
+        // iOS necesita un delay para registrar los handlers
+        setTimeout(() => {
+          this.updateMediaSession(this.state)
+        }, 500)
+      })
     }
     return this.audio;
   }
@@ -300,35 +309,45 @@ class AudioPlayerSingleton {
       });
     } catch {}
 
-    try {
-      if (!state.isLive && this.queue.length > 1) {
-        navigator.mediaSession.setActionHandler(
-          'previoustrack',
-          this.hasPrev() ? () => this.playPrev() : null
-        )
-        navigator.mediaSession.setActionHandler(
-          'nexttrack',
-          this.hasNext() ? () => this.playNext() : null
-        )
-      } else {
-        navigator.mediaSession.setActionHandler('previoustrack', null)
-        navigator.mediaSession.setActionHandler('nexttrack', null)
-      }
-    } catch {}
-
     if (!state.isLive) {
       try {
-        navigator.mediaSession.setActionHandler("seekto", (details) => {
+        navigator.mediaSession.setActionHandler('seekto', (details) => {
           if (details.seekTime !== undefined && this.audio) {
-            this.audio.currentTime = details.seekTime;
+            this.audio.currentTime = details.seekTime
           }
-        });
-        navigator.mediaSession.setActionHandler("seekforward", (details) => {
-          if (this.audio) this.audio.currentTime += details.seekOffset || 10;
-        });
-        navigator.mediaSession.setActionHandler("seekbackward", (details) => {
-          if (this.audio) this.audio.currentTime -= details.seekOffset || 10;
-        });
+        })
+        navigator.mediaSession.setActionHandler('seekforward', (details) => {
+          if (this.audio) this.audio.currentTime += details.seekOffset || 10
+        })
+        navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+          if (this.audio) this.audio.currentTime -= details.seekOffset || 10
+        })
+      } catch {}
+
+      // Previous/Next con la cola
+      try {
+        if (this.queue.length > 1) {
+          navigator.mediaSession.setActionHandler(
+            'previoustrack',
+            this.hasPrev() ? () => this.playPrev() : null
+          )
+          navigator.mediaSession.setActionHandler(
+            'nexttrack',
+            this.hasNext() ? () => this.playNext() : null
+          )
+        } else {
+          navigator.mediaSession.setActionHandler('previoustrack', null)
+          navigator.mediaSession.setActionHandler('nexttrack', null)
+        }
+      } catch {}
+    } else {
+      // Radio en vivo — quitar todos los controles de seek
+      try {
+        navigator.mediaSession.setActionHandler('seekto', null)
+        navigator.mediaSession.setActionHandler('seekforward', null)
+        navigator.mediaSession.setActionHandler('seekbackward', null)
+        navigator.mediaSession.setActionHandler('previoustrack', null)
+        navigator.mediaSession.setActionHandler('nexttrack', null)
       } catch {}
     }
   }
