@@ -1,26 +1,57 @@
 'use client'
-
 import { useEffect } from 'react'
 
-export function SwRegister() {
+export default function SwRegister() {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return
 
-    // Unregister all old service workers first, then register fresh
-    navigator.serviceWorker.getRegistrations().then(async (registrations) => {
-      await Promise.all(registrations.map(r => r.unregister()))
+    const registerSW = async () => {
+      try {
+        // Desregistrar SWs viejos
+        const registrations = await navigator.serviceWorker.getRegistrations()
+        for (const reg of registrations) {
+          const swUrl = reg.active?.scriptURL || ''
+          if (!swUrl.includes('/sw.js')) {
+            await reg.unregister()
+          }
+        }
 
-      // Delete all caches except the new one
-      const keys = await caches.keys()
-      await Promise.all(keys.filter(k => k !== 'underhits-v3').map(k => caches.delete(k)))
+        // Limpiar caches viejos
+        const keys = await caches.keys()
+        for (const key of keys) {
+          if (key !== 'underhits-v4') {
+            await caches.delete(key)
+          }
+        }
 
-      // Register new SW after a short delay to let the page settle
-      setTimeout(() => {
-        navigator.serviceWorker.register('/sw.js').catch(err =>
-          console.warn('SW registration failed:', err)
-        )
-      }, 1000)
-    })
+        // Registrar nuevo SW
+        const reg = await navigator.serviceWorker.register('/sw.js', {
+          scope: '/',
+          updateViaCache: 'none',
+        })
+
+        // Forzar actualización si hay uno nuevo esperando
+        if (reg.waiting) {
+          reg.waiting.postMessage('skipWaiting')
+        }
+
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                newWorker.postMessage('skipWaiting')
+              }
+            })
+          }
+        })
+
+      } catch (err) {
+        console.error('SW registration failed:', err)
+      }
+    }
+
+    registerSW()
   }, [])
 
   return null

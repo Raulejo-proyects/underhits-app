@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PlatformProvider } from "@/lib/platform-context";
-import { SwRegister } from "@/components/SwRegister";
+import SwRegister from "@/components/SwRegister";
 import { AuthProvider } from "@/lib/authContext";
 
 export const metadata: Metadata = {
