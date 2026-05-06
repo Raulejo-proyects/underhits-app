@@ -501,7 +501,22 @@ export default function OfflinePage() {
                     style={{ background: "#1a1a1a" }}
                   >
                     {pod.imagen_url ? (
-                      <img src={pod.imagen_url} alt={pod.titulo} className="w-full h-full rounded-xl object-cover" />
+                      <img
+                        src={pod.imagen_url}
+                        alt={pod.titulo}
+                        className="w-full h-full rounded-xl object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none'
+                          const parent = e.currentTarget.parentElement
+                          if (parent && !parent.querySelector('.img-fallback')) {
+                            const span = document.createElement('span')
+                            span.className = 'img-fallback'
+                            span.style.fontSize = '24px'
+                            span.textContent = '🎙️'
+                            parent.appendChild(span)
+                          }
+                        }}
+                      />
                     ) : (
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="#E8522A">
                         <path d="M12 2a3 3 0 013 3v6a3 3 0 01-6 0V5a3 3 0 013-3z" />
@@ -699,7 +714,22 @@ export default function OfflinePage() {
                     style={{ background: "#1a1a1a" }}
                   >
                     {pl.imagen_url ? (
-                      <img src={pl.imagen_url} alt={pl.titulo} className="w-full h-full rounded-xl object-cover" />
+                      <img
+                        src={pl.imagen_url}
+                        alt={pl.titulo}
+                        className="w-full h-full rounded-xl object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none'
+                          const parent = e.currentTarget.parentElement
+                          if (parent && !parent.querySelector('.img-fallback')) {
+                            const span = document.createElement('span')
+                            span.className = 'img-fallback'
+                            span.style.fontSize = '24px'
+                            span.textContent = '🎵'
+                            parent.appendChild(span)
+                          }
+                        }}
+                      />
                     ) : (
                       <svg width="24" height="24" fill="#E8522A" viewBox="0 0 24 24">
                         <path d="M9 18V5l12-2v13M9 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12-2c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z" />
@@ -946,7 +976,22 @@ export default function OfflinePage() {
                     style={{ background: "#1a1a1a" }}
                   >
                     {item.imagen_url ? (
-                      <img src={item.imagen_url} alt={item.titulo} className="w-full h-full rounded-lg object-cover" />
+                      <img
+                        src={item.imagen_url}
+                        alt={item.titulo}
+                        className="w-full h-full rounded-lg object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none'
+                          const parent = e.currentTarget.parentElement
+                          if (parent && !parent.querySelector('.img-fallback')) {
+                            const span = document.createElement('span')
+                            span.className = 'img-fallback'
+                            span.style.fontSize = '20px'
+                            span.textContent = item.type === 'podcast' ? '🎙️' : '🎵'
+                            parent.appendChild(span)
+                          }
+                        }}
+                      />
                     ) : (
                       <svg width="20" height="20" fill="#E8522A" viewBox="0 0 24 24">
                         <path d="M9 18V5l12-2v13M9 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z" />
@@ -1050,9 +1095,22 @@ export default function OfflinePage() {
                           justifyContent: "center",
                         }}>
                           {cloudItem.imagen_url ? (
-                            <img src={cloudItem.imagen_url} alt=""
-                              style={{ width: "100%", height: "100%",
-                                objectFit: "cover", borderRadius: 8 }}/>
+                            <img
+                              src={cloudItem.imagen_url}
+                              alt=""
+                              style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 8 }}
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none'
+                                const parent = e.currentTarget.parentElement
+                                if (parent && !parent.querySelector('.img-fallback')) {
+                                  const span = document.createElement('span')
+                                  span.className = 'img-fallback'
+                                  span.style.fontSize = '18px'
+                                  span.textContent = cloudItem.item_type === 'podcast' ? '🎙️' : '🎵'
+                                  parent.appendChild(span)
+                                }
+                              }}
+                            />
                           ) : (
                             <span style={{ fontSize: 18 }}>
                               {cloudItem.item_type === "podcast" ? "🎙️" : "🎵"}

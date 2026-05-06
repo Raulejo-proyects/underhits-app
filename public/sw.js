@@ -49,9 +49,10 @@ self.addEventListener('fetch', (event) => {
   // Solo GET
   if (request.method !== 'GET') return
 
-  // Nunca interceptar: Supabase, Zeno, APIs externas
+  // Nunca interceptar: Supabase (excepto imágenes storage), Zeno, APIs externas
   if (
-    url.hostname.includes('supabase.co') ||
+    (url.hostname.includes('supabase.co') &&
+      !(url.pathname.includes('/storage/') && url.pathname.match(/\.(jpg|jpeg|png|webp|svg)$/))) ||
     url.hostname.includes('zeno.fm') ||
     url.hostname.includes('youtube.com') ||
     url.hostname.includes('soundcloud.com')
@@ -108,6 +109,25 @@ self.addEventListener('fetch', (event) => {
     url.pathname === '/logo.png' ||
     url.pathname === '/manifest.json'
   ) {
+    event.respondWith(
+      caches.match(request).then(cached => {
+        if (cached) return cached
+        return fetch(request).then(response => {
+          if (response.ok) {
+            const clone = response.clone()
+            caches.open(CACHE_NAME).then(cache => cache.put(request, clone))
+          }
+          return response
+        }).catch(() => cached || new Response('', { status: 404 }))
+      })
+    )
+    return
+  }
+
+  // Cachear imágenes de Supabase cuando hay conexión
+  if (url.hostname.includes('supabase.co') &&
+      url.pathname.includes('/storage/') &&
+      url.pathname.match(/\.(jpg|jpeg|png|webp|svg)$/)) {
     event.respondWith(
       caches.match(request).then(cached => {
         if (cached) return cached
